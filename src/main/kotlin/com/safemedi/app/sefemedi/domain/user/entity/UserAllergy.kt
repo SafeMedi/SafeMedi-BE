@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.domain.user.entity
 
 import com.safemedi.app.sefemedi.domain.drug.entity.DrugMaster
+import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity
 import jakarta.persistence.*
 
 @Entity
@@ -27,4 +28,4 @@ class UserAllergy(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "registered_via_drug")
     var registeredViaDrug: DrugMaster? = null
-)
+) : BaseTimeEntity()

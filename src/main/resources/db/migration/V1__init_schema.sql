@@ -86,7 +86,7 @@ CREATE TABLE `user_device` (
 CREATE TABLE `user_allergy` (
     `id`                  bigint       PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
     `user_id`             bigint       COMMENT '사용자 식별자 (FK)',
-    `allergy_type`        ENUM('INGREDIENT', 'FOOD', 'CUSTOM') COMMENT '알러지 분류',
+    `allergy_type`        ENUM('ATC_GROUP', 'INGREDIENT', 'FOOD') COMMENT '알러지 분류',
     `allergy_value`       varchar(50)  COMMENT '알러지 원인값',
     `allergy_name`        varchar(255) COMMENT '화면 표시용 알러지 이름',
     `registered_via_drug` varchar(50)  COMMENT '등록 원인 약물 코드 (FK)',
@@ -103,19 +103,22 @@ CREATE TABLE `family` (
     `user_id`           bigint      COMMENT '주체 사용자 (FK)',
     `connected_user_id` bigint      COMMENT '가족 대상 사용자 (FK)',
     `relation`          varchar(50) COMMENT '가족 관계 호칭',
-    `is_alert_consent`  boolean     DEFAULT true COMMENT '가족 알림 수신 동의',
+    `is_allow_my_info`  boolean     DEFAULT true COMMENT '상대방에게 내 정보 노출 허용 여부',
+    `is_receive_alert`  boolean     DEFAULT true COMMENT '상대방의 알림 수신 여부',
     `created_at`        datetime    COMMENT '관계 성립 일시',
     `updated_at`        datetime    COMMENT '최근 수정 일시'
 ) COMMENT '가족 연결 정보';
 
 CREATE TABLE `family_request` (
-    `id`                bigint      PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
-    `sender_id`         bigint      COMMENT '요청자 (FK)',
-    `receiver_id`       bigint      COMMENT '수신자 (FK)',
-    `proposed_relation` varchar(50) COMMENT '제안 호칭',
-    `status`            ENUM('PENDING', 'ACCEPTED', 'REJECTED') DEFAULT 'PENDING' COMMENT '요청 상태',
-    `created_at`        datetime    COMMENT '요청 발송 일시',
-    `updated_at`        datetime    COMMENT '상태 변경 일시'
+    `id`                    bigint      PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
+    `sender_id`             bigint      COMMENT '요청자 (FK)',
+    `receiver_id`           bigint      COMMENT '수신자 (FK)',
+    `proposed_relation`     varchar(50) COMMENT '제안 호칭',
+    `status`                ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED') DEFAULT 'PENDING' COMMENT '요청 상태',
+    `sender_allow_my_info`  boolean     DEFAULT true COMMENT '보낸 사람의 내 정보 공유 허용 여부',
+    `sender_receive_alert`  boolean     DEFAULT true COMMENT '보낸 사람의 상대방 알림 수신 여부',
+    `created_at`            datetime    COMMENT '요청 발송 일시',
+    `updated_at`            datetime    COMMENT '상태 변경 일시'
 ) COMMENT '가족 연결 요청 내역';
 
 -- =====================================
@@ -123,13 +126,15 @@ CREATE TABLE `family_request` (
 -- =====================================
 
 CREATE TABLE `prescription` (
-    `id`         bigint       PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
-    `user_id`    bigint       COMMENT '소유자 (FK)',
-    `title`      varchar(255) COMMENT '처방전 별칭',
-    `start_date` date         COMMENT '복용 시작일',
-    `end_date`   date         COMMENT '복용 종료일',
-    `created_at` datetime     COMMENT '등록 일시',
-    `updated_at` datetime     COMMENT '최근 수정 일시'
+    `id`                   bigint       PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
+    `user_id`              bigint       COMMENT '소유자 (FK)',
+    `title`                varchar(255) COMMENT '처방전 별칭',
+    `has_allergy_conflict` boolean      DEFAULT false COMMENT '알러지/질환 충돌 경고 발생 여부',
+    `is_doctor_approved`   boolean      DEFAULT false COMMENT '경고 발생 시 의사 승인 체크 여부',
+    `start_date`           date         COMMENT '복용 시작일',
+    `end_date`             date         COMMENT '복용 종료일',
+    `created_at`           datetime     COMMENT '등록 일시',
+    `updated_at`           datetime     COMMENT '최근 수정 일시'
 ) COMMENT '처방전 기본 정보';
 
 CREATE TABLE `prescription_drug` (
@@ -140,11 +145,11 @@ CREATE TABLE `prescription_drug` (
     `atc_code`        varchar(20)  COMMENT '당시 대표 ATC 코드 (스냅샷)'
 ) COMMENT '처방전 포함 약품';
 
-CREATE TABLE `prescription_time` (
-    `id`              bigint PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
-    `prescription_id` bigint COMMENT '처방전 식별자 (FK)',
-    `take_time`       time   COMMENT '복용 시간 (HH:mm)'
-) COMMENT '처방전별 복용 시간';
+CREATE TABLE `prescription_drug_time` (
+    `id`                   bigint PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
+    `prescription_drug_id` bigint COMMENT '처방 약품 식별자 (FK)',
+    `take_time`            time   COMMENT '복용 시간 (HH:mm)'
+) COMMENT '약품별 복용 시간';
 
 CREATE TABLE `medication_record` (
     `id`              bigint   PRIMARY KEY AUTO_INCREMENT COMMENT 'PK',
@@ -169,7 +174,47 @@ CREATE TABLE `notification_log` (
 ) COMMENT '알림 발송 이력';
 
 -- =====================================
--- 5. 관계 설정 (Foreign Keys)
+-- 5. DUR (의약품안전사용서비스) 금기 및 주의 마스터
+-- =====================================
+
+CREATE TABLE `dur_interaction` (
+    `id`              bigint PRIMARY KEY AUTO_INCREMENT COMMENT '병용 금기 식별자 (PK)',
+    `drug_name_a`     varchar(255) COMMENT '기준 약품명',
+    `drug_name_b`     varchar(255) COMMENT '대상 약품명',
+    `notice_number`   varchar(50)  COMMENT '심평원 고시번호',
+    `notice_date`     date         COMMENT '심평원 고시일자',
+    `warning_message` text         COMMENT '부작용 및 경고 상세 정보'
+) COMMENT 'DUR 병용 금기';
+
+CREATE TABLE `dur_age` (
+    `id`              bigint PRIMARY KEY AUTO_INCREMENT COMMENT '연령 금기 식별자 (PK)',
+    `drug_name`       varchar(255) COMMENT '제한 대상 약품명',
+    `target_age`      int          COMMENT '제한 기준 연령',
+    `age_condition`   varchar(20)  COMMENT '연령 조건 (UNDER, OVER 등)',
+    `notice_number`   varchar(50)  COMMENT '심평원 고시번호',
+    `notice_date`     date         COMMENT '심평원 고시일자',
+    `warning_message` text         COMMENT '부작용 상세 정보'
+) COMMENT 'DUR 연령 금기';
+
+CREATE TABLE `dur_pregnancy` (
+    `id`              bigint PRIMARY KEY AUTO_INCREMENT COMMENT '임부 금기 식별자 (PK)',
+    `drug_name`       varchar(255) COMMENT '임부 투여 제한 약품명',
+    `grade`           int          COMMENT '금기 등급',
+    `notice_number`   varchar(50)  COMMENT '심평원 고시번호',
+    `notice_date`     date         COMMENT '심평원 고시일자',
+    `warning_message` text         COMMENT '경고 상세 정보'
+) COMMENT 'DUR 임부 금기';
+
+CREATE TABLE `dur_elderly` (
+    `id`              bigint PRIMARY KEY AUTO_INCREMENT COMMENT '노인 주의 식별자 (PK)',
+    `drug_name`       varchar(255) COMMENT '고령자 투여 주의 약품명',
+    `notice_number`   varchar(50)  COMMENT '심평원 공고번호',
+    `notice_date`     date         COMMENT '심평원 공고일자',
+    `warning_message` text         COMMENT '경고 상세 정보'
+) COMMENT 'DUR 노인 주의';
+
+-- =====================================
+-- 6. 관계 설정 (Foreign Keys)
 -- =====================================
 
 ALTER TABLE `ingredient_atc_map`  ADD FOREIGN KEY (`ingredient_code`)   REFERENCES `ingredient_master` (`ingredient_code`);
@@ -188,14 +233,11 @@ ALTER TABLE `family`              ADD FOREIGN KEY (`connected_user_id`)   REFERE
 ALTER TABLE `family_request`      ADD FOREIGN KEY (`sender_id`)           REFERENCES `user` (`id`);
 ALTER TABLE `family_request`      ADD FOREIGN KEY (`receiver_id`)         REFERENCES `user` (`id`);
 
-ALTER TABLE `prescription`        ADD FOREIGN KEY (`user_id`)             REFERENCES `user` (`id`);
-ALTER TABLE `prescription_drug`   ADD FOREIGN KEY (`prescription_id`)     REFERENCES `prescription` (`id`);
-ALTER TABLE `prescription_drug`   ADD FOREIGN KEY (`drug_code`)           REFERENCES `drug_master` (`drug_code`);
-ALTER TABLE `prescription_time`   ADD FOREIGN KEY (`prescription_id`)     REFERENCES `prescription` (`id`);
+ALTER TABLE `prescription`          ADD FOREIGN KEY (`user_id`)              REFERENCES `user` (`id`);
+ALTER TABLE `prescription_drug`     ADD FOREIGN KEY (`prescription_id`)      REFERENCES `prescription` (`id`);
+ALTER TABLE `prescription_drug`     ADD FOREIGN KEY (`drug_code`)            REFERENCES `drug_master` (`drug_code`);
+ALTER TABLE `prescription_drug_time` ADD FOREIGN KEY (`prescription_drug_id`) REFERENCES `prescription_drug` (`id`);
 
 ALTER TABLE `medication_record`   ADD FOREIGN KEY (`user_id`)             REFERENCES `user` (`id`);
 ALTER TABLE `medication_record`   ADD FOREIGN KEY (`prescription_id`)     REFERENCES `prescription` (`id`);
 ALTER TABLE `notification_log`    ADD FOREIGN KEY (`user_id`)             REFERENCES `user` (`id`);
-
-
-

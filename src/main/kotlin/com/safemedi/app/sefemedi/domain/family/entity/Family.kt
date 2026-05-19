@@ -26,6 +26,9 @@ class Family(
     @Column(length = 50)
     var relation: String,
 
-    @Column(name = "is_alert_consent")
-    var isAlertConsent: Boolean = true
+    @Column(name = "is_allow_my_info")
+    var isAllowMyInfo: Boolean = true,
+
+    @Column(name = "is_receive_alert")
+    var isReceiveAlert: Boolean = true
 ) : BaseTimeEntity()

@@ -25,5 +25,11 @@ class FamilyRequest(
     var proposedRelation: String,
 
     @Enumerated(EnumType.STRING)
-    var status: FamilyRequestStatus = FamilyRequestStatus.PENDING
+    var status: FamilyRequestStatus = FamilyRequestStatus.PENDING,
+
+    @Column(name = "sender_allow_my_info")
+    var senderAllowMyInfo: Boolean = true,
+
+    @Column(name = "sender_receive_alert")
+    var senderReceiveAlert: Boolean = true
 ) : BaseTimeEntity()

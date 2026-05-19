@@ -16,8 +16,14 @@ class Prescription(
     @JoinColumn(name = "user_id")
     val user: User,
 
-    @Column(length = 255)
+    @Column(name = "title", length = 255)
     var title: String,
+
+    @Column(name = "has_allergy_conflict")
+    var hasAllergyConflict: Boolean = false,
+
+    @Column(name = "is_doctor_approved")
+    var isDoctorApproved: Boolean = false,
 
     @Column(name = "start_date")
     var startDate: LocalDate,

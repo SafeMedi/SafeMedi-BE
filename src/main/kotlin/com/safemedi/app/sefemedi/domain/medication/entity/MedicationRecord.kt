@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.domain.medication.entity
 
 import com.safemedi.app.sefemedi.domain.user.entity.User
+import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -27,4 +28,4 @@ class MedicationRecord(
 
     @Enumerated(EnumType.STRING)
     var status: MedicationStatus = MedicationStatus.PENDING
-)
+) : BaseTimeEntity()

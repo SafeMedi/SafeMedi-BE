@@ -41,6 +41,8 @@ dependencies {
 
 	// Flyway
 	implementation("org.flywaydb:flyway-core")
+	implementation("tools.jackson.module:jackson-module-kotlin")
+	implementation("org.springframework.boot:spring-boot-starter-flyway")
 	implementation("org.flywaydb:flyway-mysql")
 
 	// Test

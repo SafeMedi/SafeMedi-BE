@@ -1,4 +1,4 @@
-package com.example.safemedi.domain.user.enums
+package com.safemedi.app.sefemedi.domain.user.enums
 
 enum class Gender {
     M,

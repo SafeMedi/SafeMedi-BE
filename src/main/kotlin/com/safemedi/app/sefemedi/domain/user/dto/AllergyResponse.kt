@@ -1,4 +1,4 @@
-package com.example.safemedi.domain.user.dto
+package com.safemedi.app.sefemedi.domain.user.dto
 
 data class AllergyResponse(
 

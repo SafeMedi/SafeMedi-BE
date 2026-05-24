@@ -2,6 +2,8 @@ package com.safemedi.app.sefemedi.domain.auth.service
 
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
+import com.safemedi.app.sefemedi.global.error.BusinessException
+import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,9 +23,9 @@ class AuthService(
     fun issueTokens(
         kakaoId: String
     ): TokenResponse {
-        userRepository.findByKakaoId(
-            kakaoId.toLong()
-        ) ?: throw RuntimeException("AUTH_001")
+        userRepository.findBySocialId(
+            kakaoId
+        ) ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
 
         val accessToken =
             jwtProvider.createAccessToken(kakaoId)
@@ -47,7 +49,7 @@ class AuthService(
         refreshToken: String
     ): TokenResponse {
         if (!jwtProvider.validateToken(refreshToken)) {
-            throw RuntimeException("AUTH_001")
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
 
         val kakaoId =
@@ -57,7 +59,7 @@ class AuthService(
             refreshTokenStore[kakaoId]
 
         if (savedRefreshToken != refreshToken) {
-            throw RuntimeException("AUTH_001")
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
 
         val accessToken =

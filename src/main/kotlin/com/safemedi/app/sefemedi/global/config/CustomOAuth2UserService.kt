@@ -23,9 +23,8 @@ class CustomOAuth2UserService(
 
         val kakaoId = oAuth2User.attributes["id"]
             .toString()
-            .toLong()
 
-        var user = userRepository.findByKakaoId(
+        var user = userRepository.findBySocialId(
             kakaoId
         )
 
@@ -34,7 +33,7 @@ class CustomOAuth2UserService(
             user = userRepository.save(
 
                 User(
-                    kakaoId = kakaoId
+                    socialId = kakaoId
                 )
             )
         }

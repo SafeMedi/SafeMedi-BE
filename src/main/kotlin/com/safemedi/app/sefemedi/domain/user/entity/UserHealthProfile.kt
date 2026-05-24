@@ -2,10 +2,8 @@ package com.safemedi.app.sefemedi.domain.user.entity
 
 import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity
 import jakarta.persistence.*
-import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Entity
 @Table(name = "user_health_profile")

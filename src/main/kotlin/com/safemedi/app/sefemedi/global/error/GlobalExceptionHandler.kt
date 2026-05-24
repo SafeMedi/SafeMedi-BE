@@ -4,9 +4,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-
+import org.slf4j.LoggerFactory
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    private val log = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
+
     @ExceptionHandler(BusinessException::class)
     fun handleBusinessException(exception: BusinessException): ResponseEntity<ErrorResponse> {
         val errorCode = exception.errorCode
@@ -15,14 +18,18 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException::class)
-    fun handleMissingRequestParameter(): ResponseEntity<ErrorResponse> {
-        val errorCode = ErrorCode.INVALID_SEARCH_KEYWORD
+    fun handleMissingRequestParameter(
+        exception: MissingServletRequestParameterException
+    ): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.INVALID_REQUEST
         return ResponseEntity.status(errorCode.status)
             .body(ErrorResponse(errorCode.code, errorCode.message))
     }
 
     @ExceptionHandler(Exception::class)
-    fun handleException(): ResponseEntity<ErrorResponse> {
+    fun handleException(exception: Exception): ResponseEntity<ErrorResponse> {
+        log.error("Unhandled exception occurred", exception)
+
         val errorCode = ErrorCode.INTERNAL_SERVER_ERROR
         return ResponseEntity.status(errorCode.status)
             .body(ErrorResponse(errorCode.code, errorCode.message))

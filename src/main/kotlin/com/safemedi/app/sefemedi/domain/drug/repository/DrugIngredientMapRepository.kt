@@ -12,12 +12,10 @@ interface DrugIngredientMapRepository : JpaRepository<DrugIngredientMap, Long> {
         from DrugIngredientMap dim
         join fetch dim.drug d
         join fetch dim.ingredient i
-        where d.atcCode in :atcCodes
-           or d.drugName in :drugNames
+        where d.drugCode in :drugCodes
         """
     )
-    fun findAllByMedicationKeys(
-        @Param("atcCodes") atcCodes: Collection<String>,
-        @Param("drugNames") drugNames: Collection<String>,
+    fun findAllByDrugCodes(
+        @Param("drugCodes") drugCodes: Collection<String>,
     ): List<DrugIngredientMap>
 }

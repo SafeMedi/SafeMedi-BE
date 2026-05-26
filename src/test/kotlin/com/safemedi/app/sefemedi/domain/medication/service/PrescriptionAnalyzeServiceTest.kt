@@ -5,6 +5,7 @@ import com.safemedi.app.sefemedi.domain.drug.entity.DrugMaster
 import com.safemedi.app.sefemedi.domain.drug.entity.DurInteraction
 import com.safemedi.app.sefemedi.domain.drug.entity.IngredientMaster
 import com.safemedi.app.sefemedi.domain.drug.repository.DrugIngredientMapRepository
+import com.safemedi.app.sefemedi.domain.drug.repository.DrugMasterRepository
 import com.safemedi.app.sefemedi.domain.drug.repository.DurAgeRepository
 import com.safemedi.app.sefemedi.domain.drug.repository.DurElderlyRepository
 import com.safemedi.app.sefemedi.domain.drug.repository.DurInteractionRepository
@@ -39,6 +40,7 @@ class PrescriptionAnalyzeServiceTest {
     private lateinit var userAllergyRepository: UserAllergyRepository
     private lateinit var userHealthProfileRepository: UserHealthProfileRepository
     private lateinit var drugIngredientMapRepository: DrugIngredientMapRepository
+    private lateinit var drugMasterRepository: DrugMasterRepository
     private lateinit var durElderlyRepository: DurElderlyRepository
     private lateinit var durAgeRepository: DurAgeRepository
     private lateinit var durPregnancyRepository: DurPregnancyRepository
@@ -56,25 +58,25 @@ class PrescriptionAnalyzeServiceTest {
         userAllergyRepository = mock(UserAllergyRepository::class.java)
         userHealthProfileRepository = mock(UserHealthProfileRepository::class.java)
         drugIngredientMapRepository = mock(DrugIngredientMapRepository::class.java)
+        drugMasterRepository = mock(DrugMasterRepository::class.java)
         durElderlyRepository = mock(DurElderlyRepository::class.java)
         durAgeRepository = mock(DurAgeRepository::class.java)
         durPregnancyRepository = mock(DurPregnancyRepository::class.java)
         durInteractionRepository = mock(DurInteractionRepository::class.java)
-
-        val durAnalyzer = DurSafetyAnalyzerImpl(
-            durElderlyRepository = durElderlyRepository,
-            durAgeRepository = durAgeRepository,
-            durPregnancyRepository = durPregnancyRepository,
-            durInteractionRepository = durInteractionRepository,
-        )
 
         service = PrescriptionAnalyzeService(
             userRepository = userRepository,
             userAllergyRepository = userAllergyRepository,
             userHealthProfileRepository = userHealthProfileRepository,
             drugIngredientMapRepository = drugIngredientMapRepository,
+            drugMasterRepository = drugMasterRepository,
             analyzers = listOf(
-                durAnalyzer,
+                DurSafetyAnalyzerImpl(
+                    durElderlyRepository = durElderlyRepository,
+                    durAgeRepository = durAgeRepository,
+                    durPregnancyRepository = durPregnancyRepository,
+                    durInteractionRepository = durInteractionRepository,
+                ),
                 AtcCodeAllergyAnalyzerImpl(),
                 IngredientAllergyAnalyzerImpl(),
             ),
@@ -82,7 +84,7 @@ class PrescriptionAnalyzeServiceTest {
     }
 
     @Test
-    fun `예외 처리`() {
+    fun `에러 테스트`() {
         val exception = assertFailsWith<BusinessException> {
             service.analyze(
                 socialId = "kakao-123",
@@ -95,20 +97,26 @@ class PrescriptionAnalyzeServiceTest {
     }
 
     @Test
-    fun `복합 경고 누적`() {
+    fun `분석 테스트`() {
         val medications = listOf(
-            MedicationAnalyzeRequest(atcCode = "N02BE01", drugName = "타이레놀 500mg"),
-            MedicationAnalyzeRequest(atcCode = "C08CA01", drugName = "암로디핀정 5mg"),
+            MedicationAnalyzeRequest(drugCode = "D001"),
+            MedicationAnalyzeRequest(drugCode = "D002"),
+        )
+        val tylenolDrug = DrugMaster(
+            drugCode = "D001",
+            drugName = "Tylenol 500mg",
+            atcCode = "N02BE01",
+        )
+        val amlodipineDrug = DrugMaster(
+            drugCode = "D002",
+            drugName = "Amlodipine 5mg",
+            atcCode = "C08CA01",
         )
         val ingredientMap = DrugIngredientMap(
-            drug = DrugMaster(
-                drugCode = "D001",
-                drugName = "타이레놀 500mg",
-                atcCode = "N02BE01",
-            ),
+            drug = tylenolDrug,
             ingredient = IngredientMaster(
                 ingredientCode = "I001",
-                ingredientName = "아세트아미노펜",
+                ingredientName = "Acetaminophen",
             ),
         )
         val allergies = listOf(
@@ -116,36 +124,32 @@ class PrescriptionAnalyzeServiceTest {
                 user = user,
                 allergyType = AllergyType.INGREDIENT,
                 allergyValue = "I001",
-                allergyName = "아세트아미노펜",
+                allergyName = "Acetaminophen",
             ),
             UserAllergy(
                 user = user,
                 allergyType = AllergyType.ATC_GROUP,
                 allergyValue = "C08",
-                allergyName = "칼슘채널차단제",
+                allergyName = "Calcium channel blocker",
             ),
         )
+        val drugNames = listOf("Tylenol 500mg", "Amlodipine 5mg")
         val interaction = DurInteraction(
-            drugNameA = "타이레놀 500mg",
-            drugNameB = "암로디핀정 5mg",
+            drugNameA = "Tylenol 500mg",
+            drugNameB = "Amlodipine 5mg",
             noticeNumber = "DUR-001",
             noticeDate = LocalDate.of(2026, 1, 1),
-            warningMessage = "병용 금기 조합입니다.",
+            warningMessage = "Contraindicated interaction.",
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
         given(userAllergyRepository.findByUserId(1L)).willReturn(allergies)
         given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
-        given(
-            drugIngredientMapRepository.findAllByMedicationKeys(
-                listOf("N02BE01", "C08CA01"),
-                listOf("타이레놀 500mg", "암로디핀정 5mg"),
-            )
-        ).willReturn(listOf(ingredientMap))
-        given(durAgeRepository.findByDrugNameIn(listOf("타이레놀 500mg", "암로디핀정 5mg"))).willReturn(emptyList())
-        given(durPregnancyRepository.findByDrugNameIn(listOf("타이레놀 500mg", "암로디핀정 5mg"))).willReturn(emptyList())
-        given(durInteractionRepository.findInteractions(listOf("타이레놀 500mg", "암로디핀정 5mg")))
-            .willReturn(listOf(interaction))
+        given(drugMasterRepository.findAllById(listOf("D001", "D002"))).willReturn(listOf(tylenolDrug, amlodipineDrug))
+        given(drugIngredientMapRepository.findAllByDrugCodes(listOf("D001", "D002"))).willReturn(listOf(ingredientMap))
+        given(durAgeRepository.findByDrugNameIn(drugNames)).willReturn(emptyList())
+        given(durPregnancyRepository.findByDrugNameIn(drugNames)).willReturn(emptyList())
+        given(durInteractionRepository.findInteractions(drugNames)).willReturn(listOf(interaction))
 
         val response = service.analyze(
             socialId = "kakao-123",
@@ -156,12 +160,14 @@ class PrescriptionAnalyzeServiceTest {
         assertEquals(0, response.safetySummary.warningCount)
         assertEquals(2, response.safetySummary.dangerCount)
 
-        val tylenol = response.analyzedMedications.first { it.drugName == "타이레놀 500mg" }
+        val tylenol = response.analyzedMedications.first { it.drugName == "Tylenol 500mg" }
+        assertEquals("N02BE01", tylenol.atcCode)
         assertEquals(MedicationSafetyStatus.DANGER, tylenol.status)
         assertTrue(tylenol.warnings.any { it.type == MedicationWarningType.ALLERGY })
         assertTrue(tylenol.warnings.any { it.type == MedicationWarningType.DUR_INTERACTION })
 
-        val amlodipine = response.analyzedMedications.first { it.drugName == "암로디핀정 5mg" }
+        val amlodipine = response.analyzedMedications.first { it.drugName == "Amlodipine 5mg" }
+        assertEquals("C08CA01", amlodipine.atcCode)
         assertEquals(MedicationSafetyStatus.DANGER, amlodipine.status)
         assertTrue(amlodipine.warnings.any { it.type == MedicationWarningType.ALLERGY })
         assertTrue(amlodipine.warnings.any { it.type == MedicationWarningType.DUR_INTERACTION })

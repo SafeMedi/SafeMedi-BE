@@ -5,6 +5,5 @@ data class PrescriptionAnalyzeRequest(
 )
 
 data class MedicationAnalyzeRequest(
-    val atcCode: String,
-    val drugName: String,
+    val drugCode: String,
 )

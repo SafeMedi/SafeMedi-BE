@@ -5,7 +5,6 @@ import com.safemedi.app.sefemedi.domain.drug.repository.DurAgeRepository
 import com.safemedi.app.sefemedi.domain.drug.repository.DurElderlyRepository
 import com.safemedi.app.sefemedi.domain.drug.repository.DurInteractionRepository
 import com.safemedi.app.sefemedi.domain.drug.repository.DurPregnancyRepository
-import com.safemedi.app.sefemedi.domain.medication.dto.MedicationAnalyzeRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationSafetyStatus
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationWarningType
 import com.safemedi.app.sefemedi.domain.user.entity.Gender
@@ -124,7 +123,7 @@ class DurSafetyAnalyzerImpl(
         }
     }
 
-    private fun PrescriptionContext.findMedication(drugName: String): MedicationAnalyzeRequest? =
+    private fun PrescriptionContext.findMedication(drugName: String): MedicationAnalysisTarget? =
         medications.firstOrNull { it.drugName.equals(drugName, ignoreCase = true) }
 
     private fun DurAge.matches(age: Int): Boolean =

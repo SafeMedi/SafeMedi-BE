@@ -1,6 +1,8 @@
 package com.safemedi.app.sefemedi.domain.medication.service
 
 import com.safemedi.app.sefemedi.domain.drug.repository.DrugIngredientMapRepository
+import com.safemedi.app.sefemedi.domain.drug.repository.DrugMasterRepository
+import com.safemedi.app.sefemedi.domain.medication.analyzer.MedicationAnalysisTarget
 import com.safemedi.app.sefemedi.domain.medication.analyzer.PrescriptionAnalyzer
 import com.safemedi.app.sefemedi.domain.medication.analyzer.PrescriptionContext
 import com.safemedi.app.sefemedi.domain.medication.dto.AnalyzedMedicationResponse
@@ -23,6 +25,7 @@ class PrescriptionAnalyzeService(
     private val userAllergyRepository: UserAllergyRepository,
     private val userHealthProfileRepository: UserHealthProfileRepository,
     private val drugIngredientMapRepository: DrugIngredientMapRepository,
+    private val drugMasterRepository: DrugMasterRepository,
     analyzers: List<PrescriptionAnalyzer>,
 ) {
     private val firstAnalyzer: PrescriptionAnalyzer =
@@ -47,23 +50,27 @@ class PrescriptionAnalyzeService(
         val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
         val allergies = userAllergyRepository.findByUserId(userId)
         val healthProfile = userHealthProfileRepository.findById(userId).orElse(null)
-        val atcCodes = request.medications.map { it.atcCode }.filter { it.isNotBlank() }
-        val drugNames = request.medications.map { it.drugName }.filter { it.isNotBlank() }
-        val ingredientMaps =
-            if (atcCodes.isEmpty() && drugNames.isEmpty()) {
-                emptyList()
-            } else {
-                drugIngredientMapRepository.findAllByMedicationKeys(
-                    atcCodes = atcCodes.ifEmpty { listOf(NO_MATCH_KEY) },
-                    drugNames = drugNames.ifEmpty { listOf(NO_MATCH_KEY) },
-                )
-            }
+        val drugCodes = request.medications.map { it.drugCode.trim() }
+        if (drugCodes.any { it.isBlank() }) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
+
+        val drugsByCode = drugMasterRepository.findAllById(drugCodes).associateBy { it.drugCode }
+        val medications = drugCodes.map { drugCode ->
+            val drug = drugsByCode[drugCode] ?: throw BusinessException(ErrorCode.INVALID_REQUEST)
+            MedicationAnalysisTarget(
+                drugCode = drug.drugCode,
+                atcCode = drug.atcCode ?: throw BusinessException(ErrorCode.INVALID_REQUEST),
+                drugName = drug.drugName ?: throw BusinessException(ErrorCode.INVALID_REQUEST),
+            )
+        }
+        val ingredientMaps = drugIngredientMapRepository.findAllByDrugCodes(drugCodes)
 
         val context = PrescriptionContext(
             user = user,
             healthProfile = healthProfile,
             allergies = allergies,
-            medications = request.medications,
+            medications = medications,
             ingredientMaps = ingredientMaps,
         )
 
@@ -90,9 +97,5 @@ class PrescriptionAnalyzeService(
             ),
             analyzedMedications = analyzedResponses,
         )
-    }
-
-    private companion object {
-        const val NO_MATCH_KEY = "__NO_MATCH__"
     }
 }

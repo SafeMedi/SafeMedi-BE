@@ -1,7 +1,6 @@
 package com.safemedi.app.sefemedi.domain.medication.analyzer
 
 import com.safemedi.app.sefemedi.domain.drug.entity.DrugIngredientMap
-import com.safemedi.app.sefemedi.domain.medication.dto.MedicationAnalyzeRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationSafetyStatus
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationWarningResponse
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationWarningType
@@ -13,7 +12,7 @@ class PrescriptionContext(
     val user: User,
     val healthProfile: UserHealthProfile?,
     val allergies: List<UserAllergy>,
-    val medications: List<MedicationAnalyzeRequest>,
+    val medications: List<MedicationAnalysisTarget>,
     val ingredientMaps: List<DrugIngredientMap>,
 ) {
     private val mutableAnalyzedMedications =
@@ -23,7 +22,7 @@ class PrescriptionContext(
         get() = mutableAnalyzedMedications
 
     fun addPrecaution(
-        medication: MedicationAnalyzeRequest,
+        medication: MedicationAnalysisTarget,
         message: String,
     ) {
         mutableAnalyzedMedications
@@ -32,7 +31,7 @@ class PrescriptionContext(
     }
 
     fun addWarning(
-        medication: MedicationAnalyzeRequest,
+        medication: MedicationAnalysisTarget,
         type: MedicationWarningType,
         message: String,
         status: MedicationSafetyStatus,
@@ -42,18 +41,23 @@ class PrescriptionContext(
             .forEach { it.addWarning(type, message, status) }
     }
 
-    fun ingredientsOf(medication: MedicationAnalyzeRequest): List<String> =
+    fun ingredientsOf(medication: MedicationAnalysisTarget): List<String> =
         ingredientMaps
             .filter {
-                it.drug.atcCode.equals(medication.atcCode, ignoreCase = true) ||
-                    it.drug.drugName.equals(medication.drugName, ignoreCase = true)
+                it.drug.drugCode == medication.drugCode
             }
             .mapNotNull { it.ingredient.ingredientName }
             .distinct()
 }
 
+data class MedicationAnalysisTarget(
+    val drugCode: String,
+    val atcCode: String,
+    val drugName: String,
+)
+
 class AnalyzedMedication(
-    val medication: MedicationAnalyzeRequest,
+    val medication: MedicationAnalysisTarget,
 ) {
     var status: MedicationSafetyStatus = MedicationSafetyStatus.SAFE
         private set

@@ -24,7 +24,7 @@ class UserController(
         @RequestBody request: TutorialRequest
     ): TutorialResponse {
         return userService.completeTutorial(
-            authentication.principal.toString(),
+            authentication.name,
             request
         )
     }

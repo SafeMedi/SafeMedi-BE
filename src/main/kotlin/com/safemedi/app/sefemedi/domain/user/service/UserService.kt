@@ -18,6 +18,7 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.data.repository.findByIdOrNull
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -45,13 +46,11 @@ class UserService(
         val userId = user.id
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
 
-        val profile: UserHealthProfile = userHealthProfileRepository.findById(userId)
-            .orElseGet {
-                UserHealthProfile(
-                    userId = userId,
-                    user = user,
-                )
-            }
+        val profile = userHealthProfileRepository.findByIdOrNull(userId)
+            ?: UserHealthProfile(
+                userId = userId,
+                user = user,
+            )
 
         profile.birthDate = parseBirthDate(request.birthDate)
         profile.gender = parseEnum<Gender>(request.gender)
@@ -62,28 +61,33 @@ class UserService(
 
         userHealthProfileRepository.save(profile)
 
-        request.diseaseCodes.forEach { diseaseCode ->
-            val disease = diseaseMasterRepository.findById(diseaseCode)
-                .orElseThrow { BusinessException(ErrorCode.INVALID_DISEASE_CODE) }
+        val requestedDiseaseCodes = request.diseaseCodes.distinct()
+        val diseasesByCode = diseaseMasterRepository.findAllById(requestedDiseaseCodes)
+            .associateBy { it.diseaseCode }
 
-            userDiseaseMapRepository.save(
-                UserDiseaseMap(
-                    user = user,
-                    disease = disease,
-                )
-            )
+        if (diseasesByCode.size != requestedDiseaseCodes.size) {
+            throw BusinessException(ErrorCode.INVALID_DISEASE_CODE)
         }
 
-        request.allergies.forEach { allergy ->
-            userAllergyRepository.save(
+        userDiseaseMapRepository.saveAll(
+            request.diseaseCodes.map { diseaseCode ->
+                UserDiseaseMap(
+                    user = user,
+                    disease = diseasesByCode.getValue(diseaseCode),
+                )
+            }
+        )
+
+        userAllergyRepository.saveAll(
+            request.allergies.map { allergy ->
                 UserAllergy(
                     user = user,
                     allergyType = parseEnum<AllergyType>(allergy.type),
                     allergyValue = allergy.value,
                     allergyName = allergy.name,
                 )
-            )
-        }
+            }
+        )
 
         user.isTutorialCompleted = true
 
@@ -96,7 +100,7 @@ class UserService(
         return try {
             LocalDate.parse(birthDate)
         } catch (_: DateTimeParseException) {
-            throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
+            throw BusinessException(ErrorCode.INVALID_DATE_FORMAT)
         }
     }
 

@@ -45,12 +45,13 @@ class UserService(
         val userId = user.id
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
 
-        val profile = userHealthProfileRepository.findById(userId).orElse(
-            UserHealthProfile(
-                userId = userId,
-                user = user,
-            )
-        )
+        val profile: UserHealthProfile = userHealthProfileRepository.findById(userId)
+            .orElseGet {
+                UserHealthProfile(
+                    userId = userId,
+                    user = user,
+                )
+            }
 
         profile.birthDate = parseBirthDate(request.birthDate)
         profile.gender = parseEnum<Gender>(request.gender)
@@ -94,7 +95,7 @@ class UserService(
     private fun parseBirthDate(birthDate: String): LocalDate {
         return try {
             LocalDate.parse(birthDate)
-        } catch (e: DateTimeParseException) {
+        } catch (_: DateTimeParseException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }
     }
@@ -102,7 +103,7 @@ class UserService(
     private inline fun <reified T : Enum<T>> parseEnum(value: String): T {
         return try {
             enumValueOf<T>(value)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }
     }

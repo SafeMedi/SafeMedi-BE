@@ -12,6 +12,21 @@ enum class ErrorCode(
         "VAL_001",
         "입력 값이 올바르지 않습니다.",
     ),
+    INVALID_ENUM_VALUE(
+        HttpStatus.BAD_REQUEST,
+        "VAL_001",
+        "ENUM 값이 올바르지 않습니다.",
+    ),
+    INVALID_DISEASE_CODE(
+        HttpStatus.BAD_REQUEST,
+        "VAL_002",
+        "존재하지 않는 기준질환 코드가 포함되어 있습니다.",
+    ),
+    INVALID_DATE_FORMAT(
+        HttpStatus.BAD_REQUEST,
+        "VAL_003",
+        "생년월일 형식이 올바르지 않습니다.",
+    ),
     TUTORIAL_ALREADY_COMPLETED(
         HttpStatus.BAD_REQUEST,
         "TUT_001",

@@ -40,6 +40,10 @@ class SecurityConfig(
                     "/api/v1/login/kakao",
                 ).permitAll()
 
+                it.requestMatchers(
+                    "/api/v1/users/me/tutorial",
+                ).authenticated()
+
                 it.anyRequest().denyAll()
             }
             .exceptionHandling {

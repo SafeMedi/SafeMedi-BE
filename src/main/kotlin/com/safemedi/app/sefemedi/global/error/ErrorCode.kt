@@ -10,17 +10,17 @@ enum class ErrorCode(
     INVALID_REQUEST(
         HttpStatus.BAD_REQUEST,
         "VAL_001",
-        "?낅젰 媛믪씠 ?щ컮瑜댁? ?딆뒿?덈떎.",
+        "입력 값이 올바르지 않습니다.",
     ),
     INVALID_ENUM_VALUE(
         HttpStatus.BAD_REQUEST,
         "VAL_001",
-        "ENUM 媛믪씠 ?щ컮瑜댁? ?딆뒿?덈떎.",
+        "ENUM 값이 올바르지 않습니다.",
     ),
     INVALID_DISEASE_CODE(
         HttpStatus.BAD_REQUEST,
         "VAL_002",
-        "議댁옱?섏? ?딅뒗 湲곗?吏덊솚 肄붾뱶媛 ?ы븿?섏뼱 ?덉뒿?덈떎.",
+        "존재하지 않는 기준질환 코드가 포함되어 있습니다.",
     ),
     INVALID_DATE_FORMAT(
         HttpStatus.BAD_REQUEST,
@@ -30,21 +30,21 @@ enum class ErrorCode(
     TUTORIAL_ALREADY_COMPLETED(
         HttpStatus.BAD_REQUEST,
         "TUT_001",
-        "?대? ?꾨즺???쒗넗由ъ뼹?낅땲??",
+        "이미 완료된 튜토리얼입니다.",
     ),
     INVALID_SEARCH_KEYWORD(
         HttpStatus.BAD_REQUEST,
         "VAL_005",
-        "寃?됱뼱??理쒖냼 2湲???댁긽 ?낅젰?댁빞 ?⑸땲??",
+        "검색어는 최소 2글자 이상 입력해야 합니다.",
     ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",
-        "?좏슚?섏? ?딄굅??留뚮즺???좏겙?낅땲??",
+        "유효하지 않거나 만료된 토큰입니다.",
     ),
     INTERNAL_SERVER_ERROR(
         HttpStatus.INTERNAL_SERVER_ERROR,
         "SYS_500",
-        "?쒕쾭 ?대? ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.",
+        "서버 내부 오류가 발생했습니다.",
     ),
 }

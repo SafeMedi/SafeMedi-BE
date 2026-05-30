@@ -41,6 +41,7 @@ class SecurityConfig(
                 ).permitAll()
 
                 it.requestMatchers(
+                    "/api/v1/users/me/tutorial",
                     "/api/v1/prescriptions/analyze",
                 ).authenticated()
 

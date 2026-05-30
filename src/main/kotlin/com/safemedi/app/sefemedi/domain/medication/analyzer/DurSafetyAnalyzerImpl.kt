@@ -20,8 +20,8 @@ class DurSafetyAnalyzerImpl(
     private val durAgeRepository: DurAgeRepository,
     private val durPregnancyRepository: DurPregnancyRepository,
     private val durInteractionRepository: DurInteractionRepository,
-) : AbstractPrescriptionAnalyzer() {
-    override fun doAnalyze(context: PrescriptionContext) {
+) : PrescriptionAnalyzer {
+    override fun analyze(context: PrescriptionContext) {
         val drugNames = context.medications.map { it.drugName }
         val age = context.healthProfile?.birthDate?.let { Period.between(it, LocalDate.now()).years }
 
@@ -41,7 +41,7 @@ class DurSafetyAnalyzerImpl(
         }
 
         durElderlyRepository.findByDrugNameIn(drugNames).forEach { dur ->
-            context.findMedication(dur.drugName)?.let {
+            context.findMedications(dur.drugName).forEach {
                 context.addWarning(
                     medication = it,
                     type = MedicationWarningType.DUR_ELDERLY,
@@ -64,7 +64,7 @@ class DurSafetyAnalyzerImpl(
         durAgeRepository.findByDrugNameIn(drugNames)
             .filter { it.matches(age) }
             .forEach { dur ->
-                context.findMedication(dur.drugName)?.let {
+                context.findMedications(dur.drugName).forEach {
                     context.addWarning(
                         medication = it,
                         type = MedicationWarningType.DUR_AGE,
@@ -84,7 +84,7 @@ class DurSafetyAnalyzerImpl(
         }
 
         durPregnancyRepository.findByDrugNameIn(drugNames).forEach { dur ->
-            context.findMedication(dur.drugName)?.let {
+            context.findMedications(dur.drugName).forEach {
                 context.addWarning(
                     medication = it,
                     type = MedicationWarningType.DUR_PREGNANCY,
@@ -100,11 +100,9 @@ class DurSafetyAnalyzerImpl(
         drugNames: List<String>,
     ) {
         durInteractionRepository.findInteractions(drugNames).forEach { dur ->
-            val medicationA = context.findMedication(dur.drugNameA)
-            val medicationB = context.findMedication(dur.drugNameB)
             val message = dur.warningMessage
 
-            medicationA?.let {
+            context.findMedications(dur.drugNameA).forEach {
                 context.addWarning(
                     medication = it,
                     type = MedicationWarningType.DUR_INTERACTION,
@@ -112,7 +110,7 @@ class DurSafetyAnalyzerImpl(
                     status = MedicationSafetyStatus.DANGER,
                 )
             }
-            medicationB?.let {
+            context.findMedications(dur.drugNameB).forEach {
                 context.addWarning(
                     medication = it,
                     type = MedicationWarningType.DUR_INTERACTION,
@@ -123,8 +121,8 @@ class DurSafetyAnalyzerImpl(
         }
     }
 
-    private fun PrescriptionContext.findMedication(drugName: String): MedicationAnalysisTarget? =
-        medications.firstOrNull { it.drugName.equals(drugName, ignoreCase = true) }
+    private fun PrescriptionContext.findMedications(drugName: String): List<MedicationAnalysisTarget> =
+        medications.filter { it.drugName.equals(drugName, ignoreCase = true) }
 
     private fun DurAge.matches(age: Int): Boolean =
         when (ageCondition.trim().uppercase()) {

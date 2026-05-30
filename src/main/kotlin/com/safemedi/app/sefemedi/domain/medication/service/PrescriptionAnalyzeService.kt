@@ -28,13 +28,8 @@ class PrescriptionAnalyzeService(
     private val drugMasterRepository: DrugMasterRepository,
     analyzers: List<PrescriptionAnalyzer>,
 ) {
-    private val firstAnalyzer: PrescriptionAnalyzer =
-        analyzers
-            .sortedWith(AnnotationAwareOrderComparator.INSTANCE)
-            .also {
-                it.zipWithNext().forEach { (current, next) -> current.setNext(next) }
-            }
-            .first()
+    private val sortedAnalyzers: List<PrescriptionAnalyzer> =
+        analyzers.sortedWith(AnnotationAwareOrderComparator.INSTANCE)
 
     @Transactional(readOnly = true)
     fun analyze(
@@ -55,9 +50,10 @@ class PrescriptionAnalyzeService(
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
 
-        val drugsByCode = drugMasterRepository.findAllById(drugCodes).associateBy { it.drugCode }
+        val drugsByCode = drugMasterRepository.findAllById(drugCodes)
+            .associateBy { it.drugCode.uppercase() }
         val medications = drugCodes.map { drugCode ->
-            val drug = drugsByCode[drugCode] ?: throw BusinessException(ErrorCode.INVALID_REQUEST)
+            val drug = drugsByCode[drugCode.uppercase()] ?: throw BusinessException(ErrorCode.INVALID_REQUEST)
             MedicationAnalysisTarget(
                 drugCode = drug.drugCode,
                 atcCode = drug.atcCode ?: throw BusinessException(ErrorCode.INVALID_REQUEST),
@@ -74,7 +70,9 @@ class PrescriptionAnalyzeService(
             ingredientMaps = ingredientMaps,
         )
 
-        return firstAnalyzer.analyze(context).toResponse()
+        sortedAnalyzers.forEach { it.analyze(context) }
+
+        return context.toResponse()
     }
 
     private fun PrescriptionContext.toResponse(): PrescriptionAnalyzeResponse {

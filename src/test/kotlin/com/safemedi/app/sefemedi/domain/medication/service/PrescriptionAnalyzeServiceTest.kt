@@ -172,4 +172,118 @@ class PrescriptionAnalyzeServiceTest {
         assertTrue(amlodipine.warnings.any { it.type == MedicationWarningType.ALLERGY })
         assertTrue(amlodipine.warnings.any { it.type == MedicationWarningType.DUR_INTERACTION })
     }
+
+    @Test
+    fun `중복약물 경고`() {
+        val medications = listOf(
+            MedicationAnalyzeRequest(drugCode = "D001"),
+            MedicationAnalyzeRequest(drugCode = "D002"),
+            MedicationAnalyzeRequest(drugCode = "D003"),
+        )
+        val firstSameNameDrug = DrugMaster(
+            drugCode = "D001",
+            drugName = "Same Drug",
+            atcCode = "A01AA01",
+        )
+        val otherDrug = DrugMaster(
+            drugCode = "D002",
+            drugName = "Other Drug",
+            atcCode = "B01BB01",
+        )
+        val secondSameNameDrug = DrugMaster(
+            drugCode = "D003",
+            drugName = "Same Drug",
+            atcCode = "A01AA02",
+        )
+        val drugNames = listOf("Same Drug", "Other Drug", "Same Drug")
+        val interaction = DurInteraction(
+            drugNameA = "Same Drug",
+            drugNameB = "Other Drug",
+            noticeNumber = "DUR-002",
+            noticeDate = LocalDate.of(2026, 1, 1),
+            warningMessage = "Duplicate name interaction.",
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(userAllergyRepository.findByUserId(1L)).willReturn(emptyList())
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(drugMasterRepository.findAllById(listOf("D001", "D002", "D003")))
+            .willReturn(listOf(firstSameNameDrug, otherDrug, secondSameNameDrug))
+        given(drugIngredientMapRepository.findAllByDrugCodes(listOf("D001", "D002", "D003"))).willReturn(emptyList())
+        given(durInteractionRepository.findInteractions(drugNames)).willReturn(listOf(interaction))
+
+        val response = service.analyze(
+            socialId = "kakao-123",
+            request = PrescriptionAnalyzeRequest(medications = medications),
+        )
+
+        assertEquals(0, response.safetySummary.safeCount)
+        assertEquals(0, response.safetySummary.warningCount)
+        assertEquals(3, response.safetySummary.dangerCount)
+        assertEquals(
+            2,
+            response.analyzedMedications.count {
+                it.drugName == "Same Drug" &&
+                    it.status == MedicationSafetyStatus.DANGER &&
+                    it.warnings.any { warning -> warning.type == MedicationWarningType.DUR_INTERACTION }
+            },
+        )
+    }
+
+    @Test
+    fun `약품코드 대소문자`() {
+        val medications = listOf(MedicationAnalyzeRequest(drugCode = "d001"))
+        val drug = DrugMaster(
+            drugCode = "D001",
+            drugName = "Tylenol 500mg",
+            atcCode = "N02BE01",
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(userAllergyRepository.findByUserId(1L)).willReturn(emptyList())
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(drugMasterRepository.findAllById(listOf("d001"))).willReturn(listOf(drug))
+        given(drugIngredientMapRepository.findAllByDrugCodes(listOf("d001"))).willReturn(emptyList())
+        given(durInteractionRepository.findInteractions(listOf("Tylenol 500mg"))).willReturn(emptyList())
+
+        val response = service.analyze(
+            socialId = "kakao-123",
+            request = PrescriptionAnalyzeRequest(medications = medications),
+        )
+
+        assertEquals(1, response.safetySummary.safeCount)
+        assertEquals("N02BE01", response.analyzedMedications.single().atcCode)
+        assertEquals("Tylenol 500mg", response.analyzedMedications.single().drugName)
+    }
+
+    @Test
+    fun `빈 ATC 알러지 무시`() {
+        val medications = listOf(MedicationAnalyzeRequest(drugCode = "D001"))
+        val drug = DrugMaster(
+            drugCode = "D001",
+            drugName = "Tylenol 500mg",
+            atcCode = "N02BE01",
+        )
+        val blankAtcAllergy = UserAllergy(
+            user = user,
+            allergyType = AllergyType.ATC_GROUP,
+            allergyValue = " ",
+            allergyName = "Invalid ATC allergy",
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(userAllergyRepository.findByUserId(1L)).willReturn(listOf(blankAtcAllergy))
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(drugMasterRepository.findAllById(listOf("D001"))).willReturn(listOf(drug))
+        given(drugIngredientMapRepository.findAllByDrugCodes(listOf("D001"))).willReturn(emptyList())
+        given(durInteractionRepository.findInteractions(listOf("Tylenol 500mg"))).willReturn(emptyList())
+
+        val response = service.analyze(
+            socialId = "kakao-123",
+            request = PrescriptionAnalyzeRequest(medications = medications),
+        )
+
+        assertEquals(1, response.safetySummary.safeCount)
+        assertEquals(MedicationSafetyStatus.SAFE, response.analyzedMedications.single().status)
+    }
 }

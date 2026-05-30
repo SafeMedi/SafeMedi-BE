@@ -8,10 +8,13 @@ import org.springframework.stereotype.Component
 
 @Component
 @Order(2)
-class AtcCodeAllergyAnalyzerImpl : AbstractPrescriptionAnalyzer() {
-    override fun doAnalyze(context: PrescriptionContext) {
+class AtcCodeAllergyAnalyzerImpl : PrescriptionAnalyzer {
+    override fun analyze(context: PrescriptionContext) {
         val atcAllergies =
-            context.allergies.filter { it.allergyType == AllergyType.ATC_GROUP }
+            context.allergies.filter {
+                it.allergyType == AllergyType.ATC_GROUP &&
+                    it.allergyValue.isNotBlank()
+            }
 
         if (atcAllergies.isEmpty()) {
             return

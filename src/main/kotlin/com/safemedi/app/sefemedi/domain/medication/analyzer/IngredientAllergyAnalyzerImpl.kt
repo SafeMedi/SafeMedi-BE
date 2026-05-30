@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component
 
 @Component
 @Order(1)
-class IngredientAllergyAnalyzerImpl : AbstractPrescriptionAnalyzer() {
-    override fun doAnalyze(context: PrescriptionContext) {
+class IngredientAllergyAnalyzerImpl : PrescriptionAnalyzer {
+    override fun analyze(context: PrescriptionContext) {
         val ingredientAllergies =
             context.allergies.filter { it.allergyType == AllergyType.INGREDIENT }
 

@@ -37,6 +37,11 @@ enum class ErrorCode(
         "VAL_005",
         "검색어는 최소 2글자 이상 입력해야 합니다.",
     ),
+    EMPTY_MEDICATIONS(
+        HttpStatus.BAD_REQUEST,
+        "MED_002",
+        "분석할 약물 목록이 비어있습니다.",
+    ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",

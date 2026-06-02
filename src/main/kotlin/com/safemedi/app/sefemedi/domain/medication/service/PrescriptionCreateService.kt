@@ -53,7 +53,7 @@ class PrescriptionCreateService(
             )
         )
 
-        val prescriptionDrugTimes = request.medications.flatMap { medication ->
+        val prescriptionDrugs = request.medications.map { medication ->
             val drugCode = medication.drugCode.trim()
             val drug = drugsByCode[drugCode.uppercase()]
                 ?: throw BusinessException(ErrorCode.INVALID_REQUEST)
@@ -64,15 +64,15 @@ class PrescriptionCreateService(
                 ?: drug.atcCode
                 ?: throw BusinessException(ErrorCode.INVALID_REQUEST)
 
-            val prescriptionDrug = prescriptionDrugRepository.save(
-                PrescriptionDrug(
-                    prescription = prescription,
-                    drugName = drugName,
-                    drug = drug,
-                    atcCode = atcCode,
-                )
+            PrescriptionDrug(
+                prescription = prescription,
+                drugName = drugName,
+                drug = drug,
+                atcCode = atcCode,
             )
+        }.let { prescriptionDrugRepository.saveAll(it).toList() }
 
+        val prescriptionDrugTimes = request.medications.zip(prescriptionDrugs).flatMap { (medication, prescriptionDrug) ->
             medication.takeTimes.map { takeTime ->
                 PrescriptionDrugTime(
                     prescriptionDrug = prescriptionDrug,
@@ -95,6 +95,10 @@ class PrescriptionCreateService(
 
     private fun validateRequest(request: PrescriptionCreateRequest) {
         if (request.endDate.isBefore(request.startDate)) {
+            throw BusinessException(ErrorCode.INVALID_PRESCRIPTION_DATE)
+        }
+
+        if (request.endDate.isAfter(request.startDate.plusMonths(MAX_PRESCRIPTION_PERIOD_MONTHS))) {
             throw BusinessException(ErrorCode.INVALID_PRESCRIPTION_DATE)
         }
 
@@ -146,6 +150,7 @@ class PrescriptionCreateService(
     }
 
     private companion object {
+        const val MAX_PRESCRIPTION_PERIOD_MONTHS = 6L
         val TAKE_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     }
 }

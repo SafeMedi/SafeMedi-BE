@@ -75,6 +75,21 @@ class PrescriptionCreateServiceTest {
     }
 
     @Test
+    fun `기간 제한`() {
+        val exception = assertFailsWith<BusinessException> {
+            service.create(
+                socialId = "kakao-123",
+                request = validRequest().copy(
+                    startDate = LocalDate.of(2026, 1, 1),
+                    endDate = LocalDate.of(2026, 7, 2),
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_PRESCRIPTION_DATE, exception.errorCode)
+    }
+
+    @Test
     fun `복용시간 오류`() {
         val exception = assertFailsWith<BusinessException> {
             service.create(
@@ -135,9 +150,10 @@ class PrescriptionCreateServiceTest {
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
         given(drugMasterRepository.findAllById(listOf("D001"))).willReturn(listOf(drug))
         given(prescriptionRepository.save(any(Prescription::class.java))).willReturn(savedPrescription)
-        given(prescriptionDrugRepository.save(any(PrescriptionDrug::class.java))).willAnswer {
-            capturedPrescriptionDrug = it.arguments[0] as PrescriptionDrug
-            savedPrescriptionDrug
+        given(prescriptionDrugRepository.saveAll(anyList<PrescriptionDrug>())).willAnswer {
+            val prescriptionDrugs = it.arguments[0] as List<PrescriptionDrug>
+            capturedPrescriptionDrug = prescriptionDrugs.single()
+            listOf(savedPrescriptionDrug)
         }
         given(prescriptionDrugTimeRepository.saveAll(anyList<PrescriptionDrugTime>())).willReturn(savedPrescriptionDrugTimes)
         given(medicationRecordRepository.saveAll(anyList<MedicationRecord>())).willAnswer {

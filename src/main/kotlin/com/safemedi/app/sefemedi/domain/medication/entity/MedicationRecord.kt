@@ -21,7 +21,7 @@ class MedicationRecord(
     val prescription: Prescription,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "prescription_drug_time_id")
+    @JoinColumn(name = "prescription_drug_time_id", nullable = false)
     val prescriptionDrugTime: PrescriptionDrugTime,
 
     @Column(name = "scheduled_at")

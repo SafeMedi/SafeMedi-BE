@@ -14,7 +14,7 @@ class PrescriptionDrug(
     @JoinColumn(name = "prescription_id")
     val prescription: Prescription,
 
-    @Column(name = "drug_name")
+    @Column(name = "drug_name", length = 1000)
     var drugName: String,
 
     @ManyToOne(fetch = FetchType.LAZY)

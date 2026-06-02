@@ -20,6 +20,10 @@ class MedicationRecord(
     @JoinColumn(name = "prescription_id")
     val prescription: Prescription,
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prescription_drug_time_id")
+    val prescriptionDrugTime: PrescriptionDrugTime,
+
     @Column(name = "scheduled_at")
     var scheduledAt: LocalDateTime,
 

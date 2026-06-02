@@ -43,6 +43,7 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/api/v1/users/me/tutorial",
                     "/api/v1/prescriptions/analyze",
+                    "/api/v1/prescriptions",
                 ).authenticated()
 
                 it.anyRequest().denyAll()

@@ -293,15 +293,15 @@ class UserServiceTest {
         )
         val request = TutorialRequest(
             birthDate = "1985-03-15",
-            gender = "MALE",
+            gender = "male",
             height = 180,
             weight = 75,
-            bloodType = "O",
-            rhType = "PLUS",
+            bloodType = "o",
+            rhType = "plus",
             diseaseCodes = listOf("D001", "D002"),
             allergies = listOf(
                 TutorialAllergyRequest(
-                    type = "FOOD",
+                    type = "food",
                     value = "Peanut",
                     name = "Peanut",
                 )

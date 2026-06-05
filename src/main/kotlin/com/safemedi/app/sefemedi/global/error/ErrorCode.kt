@@ -37,6 +37,26 @@ enum class ErrorCode(
         "VAL_005",
         "검색어는 최소 2글자 이상 입력해야 합니다.",
     ),
+    INVALID_PRESCRIPTION_DATE(
+        HttpStatus.BAD_REQUEST,
+        "MED_001",
+        "날짜 설정이 올바르지 않습니다.",
+    ),
+    EMPTY_MEDICATIONS(
+        HttpStatus.BAD_REQUEST,
+        "MED_002",
+        "분석할 약물 목록이 비어있습니다.",
+    ),
+    INVALID_TAKE_TIMES(
+        HttpStatus.BAD_REQUEST,
+        "MED_003",
+        "복용 시간 목록이 비어있거나 형식이 올바르지 않습니다.",
+    ),
+    DOCTOR_APPROVAL_REQUIRED(
+        HttpStatus.BAD_REQUEST,
+        "MED_009",
+        "위험 요소가 발견되었으나, 의사 상담 확인(isDoctorApproved)이 누락되었습니다.",
+    ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",

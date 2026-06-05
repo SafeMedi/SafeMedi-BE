@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 class SecurityConfig(
+
     private val customOAuth2UserService: CustomOAuth2UserService,
     private val oAuth2SuccessHandler: OAuth2SuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
@@ -29,6 +30,7 @@ class SecurityConfig(
     fun filterChain(
         http: HttpSecurity,
     ): SecurityFilterChain {
+
         http
             .csrf { it.disable() }
             .formLogin { it.disable() }
@@ -47,6 +49,9 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/api/v1/users/me",
                     "/api/v1/users/me/tutorial",
+                    "/api/v1/prescriptions/analyze",
+                    "/api/v1/prescriptions",
+                    "/api/v1/medication-records/today",
                     "/api/v1/drugs/search",
                 ).authenticated()
 
@@ -62,14 +67,18 @@ class SecurityConfig(
                     response.status = HttpStatus.FORBIDDEN.value()
                 }
             }
+
             .oauth2Login {
+
                 it.authorizationEndpoint { authorization ->
+
                     authorization.baseUri(
                         "/api/v1/login",
                     )
                 }
 
                 it.userInfoEndpoint { userInfo ->
+
                     userInfo.userService(
                         customOAuth2UserService,
                     )

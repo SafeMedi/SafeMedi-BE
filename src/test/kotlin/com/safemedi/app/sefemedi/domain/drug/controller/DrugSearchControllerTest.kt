@@ -33,6 +33,7 @@ class DrugSearchControllerTest {
         val keyword = "아목시실린"
         val mockResponse = listOf(
             DrugSearchResponse(
+                drugCode = "D001",
                 atcCode = "J01CA04",
                 drugName = "아목시실린500mg",
             )
@@ -48,6 +49,7 @@ class DrugSearchControllerTest {
         resultActions
             .andExpect(status().isOk)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].drugCode").value("D001"))
             .andExpect(jsonPath("$[0].atcCode").value("J01CA04"))
             .andExpect(jsonPath("$[0].drugName").value("아목시실린500mg"))
     }

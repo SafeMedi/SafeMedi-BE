@@ -9,7 +9,7 @@ class DrugMaster(
     @Column(name = "drug_code", length = 50)
     val drugCode: String,
 
-    @Column(name = "drug_name")
+    @Column(name = "drug_name", length = 1000)
     var drugName: String? = null,
 
     @Column(name = "atc_code", length = 20)

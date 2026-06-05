@@ -14,6 +14,7 @@ class DrugSearchService(
         drugMasterRepository.findByDrugNameContainingAndAtcCodeIsNotNullOrderByDrugNameAsc(keyword)
             .mapNotNull {
                 DrugSearchResponse(
+                    drugCode = it.drugCode,
                     atcCode = it.atcCode ?: return@mapNotNull null,
                     drugName = it.drugName ?: return@mapNotNull null,
                 )

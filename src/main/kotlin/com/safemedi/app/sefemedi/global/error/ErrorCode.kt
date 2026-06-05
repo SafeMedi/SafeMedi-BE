@@ -10,7 +10,7 @@ enum class ErrorCode(
     INVALID_REQUEST(
         HttpStatus.BAD_REQUEST,
         "VAL_001",
-        "입력 값이 올바르지 않습니다.",
+        "요청 값이 올바르지 않습니다.",
     ),
     INVALID_ENUM_VALUE(
         HttpStatus.BAD_REQUEST,
@@ -20,7 +20,7 @@ enum class ErrorCode(
     INVALID_DISEASE_CODE(
         HttpStatus.BAD_REQUEST,
         "VAL_002",
-        "존재하지 않는 기준질환 코드가 포함되어 있습니다.",
+        "존재하지 않는 기저질환 코드가 포함되어 있습니다.",
     ),
     INVALID_DATE_FORMAT(
         HttpStatus.BAD_REQUEST,
@@ -40,7 +40,17 @@ enum class ErrorCode(
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",
-        "유효하지 않거나 만료된 토큰입니다.",
+        "유효하지 않은 토큰입니다.",
+    ),
+    INVALID_ACCESS_TOKEN(
+        HttpStatus.UNAUTHORIZED,
+        "AUTH_003",
+        "유효하지 않은 액세스 토큰입니다. 다시 로그인해 주세요.",
+    ),
+    USER_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "USER_001",
+        "존재하지 않는 사용자 정보입니다.",
     ),
     INTERNAL_SERVER_ERROR(
         HttpStatus.INTERNAL_SERVER_ERROR,

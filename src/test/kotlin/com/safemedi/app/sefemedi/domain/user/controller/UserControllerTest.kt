@@ -2,6 +2,8 @@ package com.safemedi.app.sefemedi.domain.user.controller
 
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -16,7 +18,7 @@ class UserControllerTest {
     private val userController = UserController(userService)
 
     @Test
-    fun `authentication name을 사용자 식별자로 전달한다`() {
+    fun `completeTutorial passes authentication name to service`() {
         val authentication = mock(Authentication::class.java)
         val request = TutorialRequest(
             birthDate = "1985-03-15",
@@ -38,5 +40,36 @@ class UserControllerTest {
 
         assertEquals(response, result)
         verify(userService).completeTutorial("4903042739", request)
+    }
+
+    @Test
+    fun `getMyProfile passes authentication name to service`() {
+        val authentication = mock(Authentication::class.java)
+        val response = UserProfileResponse(
+            nickname = "홍길동",
+            inviteCode = "A8F9K2",
+            birthDate = "1985-03-15",
+            gender = null,
+            height = 180,
+            weight = 75,
+            bloodType = null,
+            rhType = null,
+            isTutorialCompleted = true,
+            diseases = emptyList(),
+            allergies = emptyList(),
+            families = emptyList(),
+            settings = UserNotificationSettingsResponse(
+                isMyReminderOn = true,
+                isFamilyReminderOn = true,
+            ),
+        )
+
+        given(authentication.name).willReturn("4903042739")
+        given(userService.getMyProfile("4903042739")).willReturn(response)
+
+        val result = userController.getMyProfile(authentication)
+
+        assertEquals(response, result)
+        verify(userService).getMyProfile("4903042739")
     }
 }

@@ -148,7 +148,7 @@ class UserService(
         }
 
         userDiseaseMapRepository.saveAll(
-            request.diseaseCodes.map { diseaseCode ->
+            requestedDiseaseCodes.map { diseaseCode ->
                 UserDiseaseMap(
                     user = user,
                     disease = diseasesByCode.getValue(diseaseCode),

@@ -27,6 +27,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserHealthProfileReposit
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
+import org.mockito.ArgumentCaptor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -329,6 +330,52 @@ class UserServiceTest {
         verify(diseaseMasterRepository).findAllById(listOf("D001", "D002"))
         verify(userDiseaseMapRepository).saveAll(anyList())
         verify(userAllergyRepository).saveAll(anyList())
+    }
+
+    @Test
+    fun `completeTutorial deduplicates disease mappings before saving`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+            isTutorialCompleted = false,
+        )
+        val request = TutorialRequest(
+            birthDate = "1985-03-15",
+            gender = "MALE",
+            height = 180,
+            weight = 75,
+            bloodType = "O",
+            rhType = "PLUS",
+            diseaseCodes = listOf("D001", "D001", "D002"),
+            allergies = emptyList(),
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(diseaseMasterRepository.findAllById(listOf("D001", "D002"))).willReturn(
+            listOf(
+                DiseaseMaster(
+                    diseaseCode = "D001",
+                    diseaseName = "Disease 1",
+                ),
+                DiseaseMaster(
+                    diseaseCode = "D002",
+                    diseaseName = "Disease 2",
+                ),
+            )
+        )
+
+        val response = userService.completeTutorial("4903042739", request)
+
+        @Suppress("UNCHECKED_CAST")
+        val diseaseMapsCaptor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<UserDiseaseMap>>
+
+        assertEquals(true, response.isTutorialCompleted)
+        verify(userDiseaseMapRepository).saveAll(diseaseMapsCaptor.capture())
+        assertEquals(
+            listOf("D001", "D002"),
+            diseaseMapsCaptor.value.map { it.disease.diseaseCode },
+        )
     }
 
     @Test

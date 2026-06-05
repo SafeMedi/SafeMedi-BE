@@ -54,7 +54,6 @@ class SecurityConfig(
                 it.authenticationEntryPoint { _, response, _ ->
                     writeErrorResponse(
                         response = response,
-                        errorCode = ErrorCode.INVALID_ACCESS_TOKEN,
                     )
                 }
                 it.accessDeniedHandler { _, response, _ ->
@@ -87,8 +86,8 @@ class SecurityConfig(
 
     private fun writeErrorResponse(
         response: HttpServletResponse,
-        errorCode: ErrorCode,
     ) {
+        val errorCode = ErrorCode.INVALID_ACCESS_TOKEN
         response.status = errorCode.status.value()
         response.contentType = MediaType.APPLICATION_JSON_VALUE
         response.characterEncoding = Charsets.UTF_8.name()

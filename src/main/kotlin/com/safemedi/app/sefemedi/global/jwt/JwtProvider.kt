@@ -56,9 +56,9 @@ class JwtProvider(
         return try {
             getClaims(token)
             true
-        } catch (e: JwtException) {
+        } catch (_: JwtException) {
             false
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             false
         }
     }

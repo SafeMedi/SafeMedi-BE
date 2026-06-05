@@ -3,7 +3,6 @@ package com.safemedi.app.sefemedi.global.jwt
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -76,23 +75,20 @@ class JwtProvider(
             )
 
         return Jwts.builder()
-            .setSubject(kakaoId)
-            .setIssuedAt(now)
-            .setExpiration(expiredDate)
-            .signWith(
-                key,
-                SignatureAlgorithm.HS256
-            )
+            .subject(kakaoId)
+            .issuedAt(now)
+            .expiration(expiredDate)
+            .signWith(key)
             .compact()
     }
 
     private fun getClaims(
         token: String
     ): Claims {
-        return Jwts.parserBuilder()
-            .setSigningKey(key)
+        return Jwts.parser()
+            .verifyWith(key)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
     }
 }

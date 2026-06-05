@@ -41,11 +41,13 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(
                     "/api/v1/login/kakao",
+                    "/auth/reissue",
                 ).permitAll()
 
                 it.requestMatchers(
                     "/api/v1/users/me",
                     "/api/v1/users/me/tutorial",
+                    "/api/v1/drugs/search",
                 ).authenticated()
 
                 it.anyRequest().denyAll()

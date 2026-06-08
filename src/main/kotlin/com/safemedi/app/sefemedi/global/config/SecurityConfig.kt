@@ -1,6 +1,5 @@
 package com.safemedi.app.sefemedi.global.config
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.error.ErrorResponse
 import com.safemedi.app.sefemedi.global.jwt.JwtAuthenticationFilter
@@ -15,16 +14,16 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import tools.jackson.databind.json.JsonMapper
 
 @Configuration
 class SecurityConfig(
 
+    private val jsonMapper: JsonMapper,
     private val customOAuth2UserService: CustomOAuth2UserService,
     private val oAuth2SuccessHandler: OAuth2SuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
 ) {
-
-    private val objectMapper = ObjectMapper()
 
     @Bean
     fun filterChain(
@@ -102,7 +101,7 @@ class SecurityConfig(
         response.status = errorCode.status.value()
         response.contentType = MediaType.APPLICATION_JSON_VALUE
         response.characterEncoding = Charsets.UTF_8.name()
-        objectMapper.writeValue(
+        jsonMapper.writeValue(
             response.writer,
             ErrorResponse(
                 code = errorCode.code,

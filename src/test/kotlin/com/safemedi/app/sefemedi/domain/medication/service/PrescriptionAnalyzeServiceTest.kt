@@ -143,7 +143,7 @@ class PrescriptionAnalyzeServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(userAllergyRepository.findByUserId(1L)).willReturn(allergies)
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(allergies)
         given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
         given(drugMasterRepository.findAllById(listOf("D001", "D002"))).willReturn(listOf(tylenolDrug, amlodipineDrug))
         given(drugIngredientMapRepository.findAllByDrugCodes(listOf("D001", "D002"))).willReturn(listOf(ingredientMap))
@@ -205,7 +205,7 @@ class PrescriptionAnalyzeServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(userAllergyRepository.findByUserId(1L)).willReturn(emptyList())
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
         given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
         given(drugMasterRepository.findAllById(listOf("D001", "D002", "D003")))
             .willReturn(listOf(firstSameNameDrug, otherDrug, secondSameNameDrug))
@@ -240,7 +240,7 @@ class PrescriptionAnalyzeServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(userAllergyRepository.findByUserId(1L)).willReturn(emptyList())
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
         given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
         given(drugMasterRepository.findAllById(listOf("d001"))).willReturn(listOf(drug))
         given(drugIngredientMapRepository.findAllByDrugCodes(listOf("d001"))).willReturn(emptyList())
@@ -272,7 +272,7 @@ class PrescriptionAnalyzeServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(userAllergyRepository.findByUserId(1L)).willReturn(listOf(blankAtcAllergy))
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(listOf(blankAtcAllergy))
         given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
         given(drugMasterRepository.findAllById(listOf("D001"))).willReturn(listOf(drug))
         given(drugIngredientMapRepository.findAllByDrugCodes(listOf("D001"))).willReturn(emptyList())

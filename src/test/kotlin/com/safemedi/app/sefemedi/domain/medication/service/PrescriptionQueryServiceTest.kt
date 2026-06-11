@@ -12,8 +12,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
-import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.SliceImpl
 import org.springframework.test.util.ReflectionTestUtils
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -67,7 +67,7 @@ class PrescriptionQueryServiceTest {
                 userId = 1L,
                 pageable = PageRequest.of(0, 10),
             )
-        ).willReturn(PageImpl(listOf(prescription), PageRequest.of(0, 10), 1))
+        ).willReturn(SliceImpl(listOf(prescription), PageRequest.of(0, 10), false))
         given(prescriptionDrugRepository.countByPrescriptionIds(listOf(25L)))
             .willReturn(
                 listOf(

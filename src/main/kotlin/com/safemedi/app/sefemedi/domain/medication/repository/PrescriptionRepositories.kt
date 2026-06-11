@@ -4,8 +4,8 @@ import com.safemedi.app.sefemedi.domain.medication.entity.MedicationRecord
 import com.safemedi.app.sefemedi.domain.medication.entity.Prescription
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrug
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrugTime
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -15,7 +15,7 @@ interface PrescriptionRepository : JpaRepository<Prescription, Long> {
     fun findByUserIdOrderByCreatedAtDescIdDesc(
         userId: Long,
         pageable: Pageable,
-    ): Page<Prescription>
+    ): Slice<Prescription>
 }
 
 interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {

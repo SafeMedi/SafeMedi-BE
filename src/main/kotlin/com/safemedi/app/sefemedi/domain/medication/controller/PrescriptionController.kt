@@ -2,6 +2,7 @@ package com.safemedi.app.sefemedi.domain.medication.controller
 
 import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionCreateRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionCreateResponse
+import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionDetailResponse
 import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionListResponse
 import com.safemedi.app.sefemedi.domain.medication.service.PrescriptionCreateService
 import com.safemedi.app.sefemedi.domain.medication.service.PrescriptionQueryService
@@ -10,6 +11,7 @@ import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -33,6 +35,17 @@ class PrescriptionController(
             socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
             page = page,
             size = size,
+        )
+    }
+
+    @GetMapping("/{prescriptionId}")
+    fun findPrescriptionDetail(
+        @AuthenticationPrincipal socialId: String?,
+        @PathVariable prescriptionId: Long,
+    ): PrescriptionDetailResponse {
+        return prescriptionQueryService.findPrescriptionDetail(
+            socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
+            prescriptionId = prescriptionId,
         )
     }
 

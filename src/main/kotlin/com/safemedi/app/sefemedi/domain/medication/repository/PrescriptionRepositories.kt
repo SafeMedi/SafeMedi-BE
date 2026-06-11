@@ -16,6 +16,11 @@ interface PrescriptionRepository : JpaRepository<Prescription, Long> {
         userId: Long,
         pageable: Pageable,
     ): Slice<Prescription>
+
+    fun findByIdAndUserId(
+        id: Long,
+        userId: Long,
+    ): Prescription?
 }
 
 interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
@@ -30,6 +35,19 @@ interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
     fun countByPrescriptionIds(
         @Param("prescriptionIds") prescriptionIds: Collection<Long>,
     ): List<PrescriptionDrugCountProjection>
+
+    @Query(
+        """
+        select pd
+        from PrescriptionDrug pd
+        left join fetch pd.drug
+        where pd.prescription.id = :prescriptionId
+        order by pd.id asc
+        """
+    )
+    fun findDetailsByPrescriptionId(
+        @Param("prescriptionId") prescriptionId: Long,
+    ): List<PrescriptionDrug>
 }
 
 interface PrescriptionDrugCountProjection {
@@ -37,7 +55,19 @@ interface PrescriptionDrugCountProjection {
     val drugCount: Long
 }
 
-interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, Long>
+interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, Long> {
+    @Query(
+        """
+        select pdt
+        from PrescriptionDrugTime pdt
+        where pdt.prescriptionDrug.id in :prescriptionDrugIds
+        order by pdt.takeTime asc, pdt.id asc
+        """
+    )
+    fun findByPrescriptionDrugIds(
+        @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
+    ): List<PrescriptionDrugTime>
+}
 
 interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
     @Query(

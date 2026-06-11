@@ -106,6 +106,19 @@ class PrescriptionQueryServiceTest {
         assertEquals(ErrorCode.INVALID_PAGE_REQUEST, exception.errorCode)
     }
 
+    @Test
+    fun `페이지가 많을때 오류`() {
+        val exception = assertFailsWith<BusinessException> {
+            service.findPrescriptions(
+                socialId = "kakao-123",
+                page = 0,
+                size = 101,
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_PAGE_REQUEST, exception.errorCode)
+    }
+
     private data class PrescriptionDrugCount(
         override val prescriptionId: Long,
         override val drugCount: Long,

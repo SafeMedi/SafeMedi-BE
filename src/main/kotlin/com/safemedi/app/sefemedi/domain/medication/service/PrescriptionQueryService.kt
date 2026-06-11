@@ -57,7 +57,7 @@ class PrescriptionQueryService(
         page: Int,
         size: Int,
     ) {
-        if (page < 0 || size < 1) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw BusinessException(ErrorCode.INVALID_PAGE_REQUEST)
         }
     }
@@ -69,5 +69,9 @@ class PrescriptionQueryService(
 
         return prescriptionDrugRepository.countByPrescriptionIds(prescriptionIds)
             .associate { it.prescriptionId to it.drugCount.toInt() }
+    }
+
+    companion object {
+        private const val MAX_PAGE_SIZE = 100
     }
 }

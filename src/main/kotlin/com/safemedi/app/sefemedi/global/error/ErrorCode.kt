@@ -57,6 +57,11 @@ enum class ErrorCode(
         "PAG_001",
         "페이지 번호(page)는 0 이상이고 크기(size)는 1 이상이어야 합니다.",
     ),
+    PRESCRIPTION_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "MED_005",
+        "존재하지 않거나 이미 삭제된 처방전입니다.",
+    ),
     DOCTOR_APPROVAL_REQUIRED(
         HttpStatus.BAD_REQUEST,
         "MED_009",

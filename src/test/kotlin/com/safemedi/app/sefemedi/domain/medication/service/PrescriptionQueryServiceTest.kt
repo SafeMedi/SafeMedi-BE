@@ -206,6 +206,46 @@ class PrescriptionQueryServiceTest {
         assertEquals(ErrorCode.PRESCRIPTION_NOT_FOUND, exception.errorCode)
     }
 
+    @Test
+    fun `null 이 있어도 성공`() {
+        val prescription = Prescription(
+            id = 11L,
+            user = user,
+            title = "Unknown medicine",
+            hasAllergyConflict = false,
+            isDoctorApproved = false,
+            startDate = LocalDate.of(2026, 6, 1),
+            endDate = LocalDate.of(2026, 6, 10),
+        )
+        val prescriptionDrug = PrescriptionDrug(
+            id = 2L,
+            prescription = prescription,
+            drugName = "Unknown medicine",
+            drug = null,
+            atcCode = null,
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(prescriptionRepository.findByIdAndUserId(id = 11L, userId = 1L))
+            .willReturn(prescription)
+        given(prescriptionDrugRepository.findDetailsByPrescriptionId(11L))
+            .willReturn(listOf(prescriptionDrug))
+        given(prescriptionDrugTimeRepository.findByPrescriptionDrugIds(listOf(2L)))
+            .willReturn(emptyList())
+
+        val response = service.findPrescriptionDetail(
+            socialId = "kakao-123",
+            prescriptionId = 11L,
+        )
+
+        assertEquals(11L, response.prescriptionId)
+        assertEquals(1, response.medications.size)
+        assertEquals(null, response.medications.single().drugCode)
+        assertEquals("Unknown medicine", response.medications.single().drugName)
+        assertEquals(null, response.medications.single().atcCode)
+        assertEquals(emptyList(), response.medications.single().takeTimes)
+    }
+
     private data class PrescriptionDrugCount(
         override val prescriptionId: Long,
         override val drugCount: Long,

@@ -86,13 +86,12 @@ class PrescriptionQueryService(
             hasAllergyConflict = prescription.hasAllergyConflict,
             medications = prescriptionDrugs.map {
                 val prescriptionDrugId = it.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
-                val drug = it.drug ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
 
                 PrescriptionMedicationResponse(
                     prescriptionDrugId = prescriptionDrugId,
-                    drugCode = drug.drugCode,
+                    drugCode = it.drug?.drugCode,
                     drugName = it.drugName,
-                    atcCode = it.atcCode ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+                    atcCode = it.atcCode,
                     takeTimes = takeTimesByPrescriptionDrugId[prescriptionDrugId].orEmpty(),
                 )
             },

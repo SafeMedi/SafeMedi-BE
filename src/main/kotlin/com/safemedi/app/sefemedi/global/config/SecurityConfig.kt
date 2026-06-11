@@ -44,7 +44,7 @@ class SecurityConfig(
                     "/api/v1/users/me/tutorial",
                     "/api/v1/prescriptions/analyze",
                     "/api/v1/prescriptions",
-                    "/api/v1/prescriptions/*",
+                    "/api/v1/prescriptions/**",
                     "/api/v1/medication-records/today",
                     "/api/v1/drugs/search",
                 ).authenticated()

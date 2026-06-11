@@ -14,8 +14,8 @@ data class PrescriptionDetailResponse(
 
 data class PrescriptionMedicationResponse(
     val prescriptionDrugId: Long,
-    val drugCode: String,
+    val drugCode: String?,
     val drugName: String,
-    val atcCode: String,
+    val atcCode: String?,
     val takeTimes: List<String>,
 )

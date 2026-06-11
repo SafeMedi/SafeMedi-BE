@@ -52,6 +52,11 @@ enum class ErrorCode(
         "MED_003",
         "복용 시간 목록이 비어있거나 형식이 올바르지 않습니다.",
     ),
+    INVALID_PAGE_REQUEST(
+        HttpStatus.BAD_REQUEST,
+        "PAG_001",
+        "페이지 번호(page)는 0 이상이고 크기(size)는 1 이상이어야 합니다.",
+    ),
     DOCTOR_APPROVAL_REQUIRED(
         HttpStatus.BAD_REQUEST,
         "MED_009",

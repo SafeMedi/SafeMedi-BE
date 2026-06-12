@@ -34,7 +34,7 @@ class PrescriptionQueryService(
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
         val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
 
-        val prescriptions = prescriptionRepository.findByUserIdOrderByCreatedAtDescIdDesc(
+        val prescriptions = prescriptionRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
             userId = userId,
             pageable = PageRequest.of(page, size),
         )
@@ -66,7 +66,7 @@ class PrescriptionQueryService(
         val user = userRepository.findBySocialId(socialId)
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
         val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
-        val prescription = prescriptionRepository.findByIdAndUserId(
+        val prescription = prescriptionRepository.findByIdAndUserIdAndDeletedAtIsNull(
             id = prescriptionId,
             userId = userId,
         ) ?: throw BusinessException(ErrorCode.PRESCRIPTION_NOT_FOUND)

@@ -1,23 +1,29 @@
 package com.safemedi.app.sefemedi.domain.medication.repository
 
 import com.safemedi.app.sefemedi.domain.medication.entity.MedicationRecord
+import com.safemedi.app.sefemedi.domain.medication.entity.MedicationStatus
 import com.safemedi.app.sefemedi.domain.medication.entity.Prescription
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrug
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrugTime
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 interface PrescriptionRepository : JpaRepository<Prescription, Long> {
-    fun findByUserIdOrderByCreatedAtDescIdDesc(
+    fun findByUserIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
         userId: Long,
         pageable: Pageable,
     ): Slice<Prescription>
 
-    fun findByIdAndUserId(
+    fun findByIdAndDeletedAtIsNull(
+        id: Long,
+    ): Prescription?
+
+    fun findByIdAndUserIdAndDeletedAtIsNull(
         id: Long,
         userId: Long,
     ): Prescription?
@@ -80,6 +86,7 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         where mr.user.id = :userId
           and mr.scheduledAt >= :startAt
           and mr.scheduledAt < :endAt
+          and p.deletedAt is null
         order by mr.scheduledAt asc, p.id asc, pd.id asc
         """
     )
@@ -88,4 +95,19 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         @Param("startAt") startAt: LocalDateTime,
         @Param("endAt") endAt: LocalDateTime,
     ): List<MedicationRecord>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from MedicationRecord mr
+        where mr.prescription.id = :prescriptionId
+          and mr.status = :status
+          and mr.scheduledAt > :now
+        """
+    )
+    fun deleteFuturePendingByPrescriptionId(
+        @Param("prescriptionId") prescriptionId: Long,
+        @Param("status") status: MedicationStatus,
+        @Param("now") now: LocalDateTime,
+    ): Int
 }

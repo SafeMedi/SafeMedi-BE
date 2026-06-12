@@ -71,7 +71,7 @@ class PrescriptionQueryServiceTest {
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
         given(
-            prescriptionRepository.findByUserIdOrderByCreatedAtDescIdDesc(
+            prescriptionRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
                 userId = 1L,
                 pageable = PageRequest.of(0, 10),
             )
@@ -164,7 +164,7 @@ class PrescriptionQueryServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(prescriptionRepository.findByIdAndUserId(id = 10L, userId = 1L))
+        given(prescriptionRepository.findByIdAndUserIdAndDeletedAtIsNull(id = 10L, userId = 1L))
             .willReturn(prescription)
         given(prescriptionDrugRepository.findDetailsByPrescriptionId(10L))
             .willReturn(listOf(prescriptionDrug))
@@ -193,7 +193,7 @@ class PrescriptionQueryServiceTest {
     @Test
     fun `상세 조회 오류`() {
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(prescriptionRepository.findByIdAndUserId(id = 999L, userId = 1L))
+        given(prescriptionRepository.findByIdAndUserIdAndDeletedAtIsNull(id = 999L, userId = 1L))
             .willReturn(null)
 
         val exception = assertFailsWith<BusinessException> {
@@ -226,7 +226,7 @@ class PrescriptionQueryServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(prescriptionRepository.findByIdAndUserId(id = 11L, userId = 1L))
+        given(prescriptionRepository.findByIdAndUserIdAndDeletedAtIsNull(id = 11L, userId = 1L))
             .willReturn(prescription)
         given(prescriptionDrugRepository.findDetailsByPrescriptionId(11L))
             .willReturn(listOf(prescriptionDrug))

@@ -4,6 +4,7 @@ import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity
 import jakarta.persistence.*
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "prescription")
@@ -29,5 +30,12 @@ class Prescription(
     var startDate: LocalDate,
 
     @Column(name = "end_date")
-    var endDate: LocalDate
-) : BaseTimeEntity()
+    var endDate: LocalDate,
+
+    @Column(name = "deleted_at")
+    var deletedAt: LocalDateTime? = null
+) : BaseTimeEntity() {
+    fun delete(deletedAt: LocalDateTime) {
+        this.deletedAt = deletedAt
+    }
+}

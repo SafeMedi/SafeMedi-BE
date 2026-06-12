@@ -62,6 +62,11 @@ enum class ErrorCode(
         "MED_005",
         "존재하지 않거나 이미 삭제된 처방전입니다.",
     ),
+    PRESCRIPTION_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "MED_006",
+        "본인의 처방전만 삭제할 수 있습니다.",
+    ),
     DOCTOR_APPROVAL_REQUIRED(
         HttpStatus.BAD_REQUEST,
         "MED_009",

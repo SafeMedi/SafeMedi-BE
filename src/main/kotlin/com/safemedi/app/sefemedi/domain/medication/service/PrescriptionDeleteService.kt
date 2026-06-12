@@ -10,6 +10,7 @@ import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Service
 class PrescriptionDeleteService(
@@ -32,7 +33,7 @@ class PrescriptionDeleteService(
             throw BusinessException(ErrorCode.PRESCRIPTION_ACCESS_DENIED)
         }
 
-        val now = LocalDateTime.now()
+        val now = LocalDateTime.now(SERVICE_ZONE_ID)
         prescription.delete(now)
         medicationRecordRepository.deleteFuturePendingByPrescriptionId(
             prescriptionId = prescriptionId,
@@ -41,5 +42,9 @@ class PrescriptionDeleteService(
         )
 
         return PrescriptionDeleteResponse()
+    }
+
+    private companion object {
+        val SERVICE_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }

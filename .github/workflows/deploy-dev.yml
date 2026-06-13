@@ -57,5 +57,5 @@ jobs:
             -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
             -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --name spring-dev-container \
-            --restart always \
+            --restart on-failure:5 \
             spring-dev-image

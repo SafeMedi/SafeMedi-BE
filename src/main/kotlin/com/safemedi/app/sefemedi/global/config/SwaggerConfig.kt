@@ -1,4 +1,4 @@
-package com.safemedi.app.sefemedi.global.config;
+package com.safemedi.app.sefemedi.global.config
 
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI

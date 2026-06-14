@@ -1,13 +1,13 @@
 package com.safemedi.app.sefemedi.global.config;
 
 import io.swagger.v3.oas.models.Components
-import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import io.swagger.v3.oas.models.servers.Server
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 
 @Configuration
 class SwaggerConfig {
@@ -23,8 +23,8 @@ class SwaggerConfig {
 
     private fun apiInfo(): Info{
         return Info()
-            .title("Example API")
-            .description("Example API Documentation")
+            .title("SafeMedi API")
+            .description("SafeMedi API Documentation")
             .version("v1")
     }
     private fun components(): Components {

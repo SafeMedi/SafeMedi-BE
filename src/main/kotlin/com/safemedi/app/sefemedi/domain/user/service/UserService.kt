@@ -1,8 +1,14 @@
 package com.safemedi.app.sefemedi.domain.user.service
 
 import com.safemedi.app.sefemedi.domain.drug.repository.DiseaseMasterRepository
+import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
+import com.safemedi.app.sefemedi.domain.user.dto.AllergyResponse
+import com.safemedi.app.sefemedi.domain.user.dto.DiseaseResponse
+import com.safemedi.app.sefemedi.domain.user.dto.FamilyResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.entity.AllergyType
 import com.safemedi.app.sefemedi.domain.user.entity.BloodType
 import com.safemedi.app.sefemedi.domain.user.entity.Gender
@@ -11,14 +17,15 @@ import com.safemedi.app.sefemedi.domain.user.entity.UserAllergy
 import com.safemedi.app.sefemedi.domain.user.entity.UserDiseaseMap
 import com.safemedi.app.sefemedi.domain.user.entity.UserHealthProfile
 import com.safemedi.app.sefemedi.domain.user.repository.UserAllergyRepository
+import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserDiseaseMapRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserHealthProfileRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.data.repository.findByIdOrNull
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -29,7 +36,78 @@ class UserService(
     private val userDiseaseMapRepository: UserDiseaseMapRepository,
     private val userAllergyRepository: UserAllergyRepository,
     private val diseaseMasterRepository: DiseaseMasterRepository,
+    private val familyRepository: FamilyRepository,
+    private val userDeviceRepository: UserDeviceRepository,
 ) {
+
+    @Transactional(readOnly = true)
+    fun getMyProfile(
+        socialId: String,
+    ): UserProfileResponse {
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+
+        val userId = user.id
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+
+        val profile = userHealthProfileRepository.findByIdOrNull(userId)
+
+        val diseases = userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
+            .map { diseaseMap ->
+                DiseaseResponse(
+                    code = diseaseMap.disease.diseaseCode,
+                    name = diseaseMap.disease.diseaseName,
+                )
+            }
+
+        val allergies = userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
+            .map { allergy ->
+                AllergyResponse(
+                    type = allergy.allergyType,
+                    value = allergy.allergyValue,
+                    name = allergy.allergyName,
+                )
+            }
+
+        val families = listOf(
+            FamilyResponse(
+                familyId = userId,
+                name = user.nickname,
+                relation = "본인",
+                isMe = true,
+            ),
+        ) + familyRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
+            .map { family ->
+                FamilyResponse(
+                    familyId = family.id ?: 0L,
+                    name = family.connectedUser.nickname,
+                    relation = family.relation,
+                    isMe = false,
+                )
+            }
+
+        val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
+        val settings = UserNotificationSettingsResponse(
+            isMyReminderOn = latestDevice?.isMyReminderOn ?: true,
+            isFamilyReminderOn = latestDevice?.isFamilyReminderOn ?: true,
+        )
+
+        return UserProfileResponse(
+            nickname = user.nickname,
+            inviteCode = user.inviteCode,
+            birthDate = profile?.birthDate?.toString(),
+            gender = profile?.gender,
+            height = profile?.height,
+            weight = profile?.weight,
+            bloodType = profile?.bloodType,
+            rhType = profile?.rhType,
+            isTutorialCompleted = user.isTutorialCompleted,
+            diseases = diseases,
+            allergies = allergies,
+            families = families,
+            settings = settings,
+        )
+    }
 
     @Transactional
     fun completeTutorial(
@@ -70,7 +148,7 @@ class UserService(
         }
 
         userDiseaseMapRepository.saveAll(
-            request.diseaseCodes.map { diseaseCode ->
+            requestedDiseaseCodes.map { diseaseCode ->
                 UserDiseaseMap(
                     user = user,
                     disease = diseasesByCode.getValue(diseaseCode),
@@ -106,7 +184,7 @@ class UserService(
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String): T {
         return try {
-            enumValueOf<T>(value)
+            enumValueOf<T>(value.uppercase())
         } catch (_: IllegalArgumentException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }

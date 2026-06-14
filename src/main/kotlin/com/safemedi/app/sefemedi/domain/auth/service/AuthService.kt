@@ -1,31 +1,32 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
+import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
+import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
+import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class AuthService(
 
     private val jwtProvider: JwtProvider,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val refreshTokenRepository: RefreshTokenRepository,
 ) {
-
-    private val refreshTokenStore =
-        ConcurrentHashMap<String, String>()
 
     @Transactional
     fun issueTokens(
         kakaoId: String
     ): TokenResponse {
-        userRepository.findBySocialId(
-            kakaoId
-        ) ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        val user =
+            findUserBySocialId(
+                kakaoId,
+            )
 
         val accessToken =
             jwtProvider.createAccessToken(kakaoId)
@@ -34,8 +35,8 @@ class AuthService(
             jwtProvider.createRefreshToken(kakaoId)
 
         saveRefreshToken(
-            kakaoId,
-            refreshToken
+            user = user,
+            token = refreshToken
         )
 
         return TokenResponse(
@@ -55,10 +56,18 @@ class AuthService(
         val kakaoId =
             jwtProvider.getKakaoId(refreshToken)
 
-        val savedRefreshToken =
-            refreshTokenStore[kakaoId]
+        val user =
+            findUserBySocialId(
+                kakaoId,
+            )
 
-        if (savedRefreshToken != refreshToken) {
+        val savedRefreshToken =
+            refreshTokenRepository.findByUser_Id(
+                requireUserId(user),
+            )
+                ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+
+        if (savedRefreshToken.token != refreshToken) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
 
@@ -69,8 +78,8 @@ class AuthService(
             jwtProvider.createRefreshToken(kakaoId)
 
         saveRefreshToken(
-            kakaoId,
-            newRefreshToken
+            user = user,
+            token = newRefreshToken
         )
 
         return TokenResponse(
@@ -80,9 +89,38 @@ class AuthService(
     }
 
     private fun saveRefreshToken(
-        kakaoId: String,
+        user: User,
         token: String
     ) {
-        refreshTokenStore[kakaoId] = token
+        val userId =
+            requireUserId(
+                user,
+            )
+
+        val refreshToken =
+            refreshTokenRepository.findByUser_Id(
+                userId,
+            )?.apply {
+                this.token = token
+            } ?: RefreshToken(
+                user = user,
+                token = token
+            )
+
+        refreshTokenRepository.save(
+            refreshToken
+        )
+    }
+
+    private fun findUserBySocialId(
+        kakaoId: String
+    ) = userRepository.findBySocialId(
+        kakaoId
+    ) ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+
+    private fun requireUserId(
+        user: User
+    ): Long {
+        return user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
     }
 }

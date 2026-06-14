@@ -43,7 +43,7 @@ class PrescriptionAnalyzeService(
         val user = userRepository.findBySocialId(socialId)
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
         val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
-        val allergies = userAllergyRepository.findByUserId(userId)
+        val allergies = userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
         val healthProfile = userHealthProfileRepository.findById(userId).orElse(null)
         val drugCodes = request.medications.map { it.drugCode.trim() }
         if (drugCodes.any { it.isBlank() }) {

@@ -2,15 +2,32 @@ package com.safemedi.app.sefemedi.domain.user.service
 
 import com.safemedi.app.sefemedi.domain.drug.entity.DiseaseMaster
 import com.safemedi.app.sefemedi.domain.drug.repository.DiseaseMasterRepository
-import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
+import com.safemedi.app.sefemedi.domain.family.entity.Family
+import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
+import com.safemedi.app.sefemedi.domain.user.dto.AllergyResponse
+import com.safemedi.app.sefemedi.domain.user.dto.DiseaseResponse
+import com.safemedi.app.sefemedi.domain.user.dto.FamilyResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialAllergyRequest
+import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
+import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
+import com.safemedi.app.sefemedi.domain.user.entity.AllergyType
+import com.safemedi.app.sefemedi.domain.user.entity.BloodType
+import com.safemedi.app.sefemedi.domain.user.entity.Gender
+import com.safemedi.app.sefemedi.domain.user.entity.RhType
 import com.safemedi.app.sefemedi.domain.user.entity.User
+import com.safemedi.app.sefemedi.domain.user.entity.UserAllergy
+import com.safemedi.app.sefemedi.domain.user.entity.UserDevice
+import com.safemedi.app.sefemedi.domain.user.entity.UserDiseaseMap
+import com.safemedi.app.sefemedi.domain.user.entity.UserHealthProfile
 import com.safemedi.app.sefemedi.domain.user.repository.UserAllergyRepository
+import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserDiseaseMapRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserHealthProfileRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
+import org.mockito.ArgumentCaptor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -19,6 +36,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mockito.anyList
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import java.time.LocalDate
 import java.util.Optional
 
 class UserServiceTest {
@@ -28,6 +46,8 @@ class UserServiceTest {
     private lateinit var userDiseaseMapRepository: UserDiseaseMapRepository
     private lateinit var userAllergyRepository: UserAllergyRepository
     private lateinit var diseaseMasterRepository: DiseaseMasterRepository
+    private lateinit var familyRepository: FamilyRepository
+    private lateinit var userDeviceRepository: UserDeviceRepository
     private lateinit var userService: UserService
 
     @BeforeEach
@@ -37,6 +57,8 @@ class UserServiceTest {
         userDiseaseMapRepository = mock(UserDiseaseMapRepository::class.java)
         userAllergyRepository = mock(UserAllergyRepository::class.java)
         diseaseMasterRepository = mock(DiseaseMasterRepository::class.java)
+        familyRepository = mock(FamilyRepository::class.java)
+        userDeviceRepository = mock(UserDeviceRepository::class.java)
 
         userService = UserService(
             userRepository = userRepository,
@@ -44,11 +66,226 @@ class UserServiceTest {
             userDiseaseMapRepository = userDiseaseMapRepository,
             userAllergyRepository = userAllergyRepository,
             diseaseMasterRepository = diseaseMasterRepository,
+            familyRepository = familyRepository,
+            userDeviceRepository = userDeviceRepository,
         )
     }
 
     @Test
-    fun `튜토리얼 정보를 등록하면 완료 상태로 변경된다`() {
+    fun `getMyProfile returns the expected aggregate response`() {
+        val user = User(
+            id = 1L,
+            nickname = "홍길동",
+            socialId = "4903042739",
+            inviteCode = "A8F9K2",
+            isTutorialCompleted = true,
+        )
+        val profile = UserHealthProfile(
+            userId = 1L,
+            user = user,
+            birthDate = LocalDate.of(1985, 3, 15),
+            gender = Gender.MALE,
+            height = 180,
+            weight = 75,
+            bloodType = BloodType.O,
+            rhType = RhType.PLUS,
+        )
+        val mother = User(
+            id = 2L,
+            nickname = "김영희",
+        )
+        val father = User(
+            id = 3L,
+            nickname = "홍철수",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.of(profile))
+        given(userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
+            listOf(
+                UserDiseaseMap(
+                    id = 10L,
+                    user = user,
+                    disease = DiseaseMaster(
+                        diseaseCode = "I10",
+                        diseaseName = "고혈압",
+                    ),
+                ),
+                UserDiseaseMap(
+                    id = 11L,
+                    user = user,
+                    disease = DiseaseMaster(
+                        diseaseCode = "E11",
+                        diseaseName = "당뇨병",
+                    ),
+                ),
+            )
+        )
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
+            listOf(
+                UserAllergy(
+                    id = 20L,
+                    user = user,
+                    allergyType = AllergyType.INGREDIENT,
+                    allergyValue = "M249154",
+                    allergyName = "페니실린",
+                ),
+                UserAllergy(
+                    id = 21L,
+                    user = user,
+                    allergyType = AllergyType.ATC_GROUP,
+                    allergyValue = "N02B",
+                    allergyName = "아스피린",
+                ),
+            )
+        )
+        given(familyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
+            listOf(
+                Family(
+                    id = 2L,
+                    user = user,
+                    connectedUser = mother,
+                    relation = "어머니",
+                ),
+                Family(
+                    id = 3L,
+                    user = user,
+                    connectedUser = father,
+                    relation = "아버지",
+                ),
+            )
+        )
+        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(
+            UserDevice(
+                id = 100L,
+                user = user,
+                deviceToken = "device-token",
+                deviceType = "ANDROID",
+                isMyReminderOn = true,
+                isFamilyReminderOn = false,
+            )
+        )
+
+        val response = userService.getMyProfile("4903042739")
+
+        assertEquals(
+            UserProfileResponse(
+                nickname = "홍길동",
+                inviteCode = "A8F9K2",
+                birthDate = "1985-03-15",
+                gender = Gender.MALE,
+                height = 180,
+                weight = 75,
+                bloodType = BloodType.O,
+                rhType = RhType.PLUS,
+                isTutorialCompleted = true,
+                diseases = listOf(
+                    DiseaseResponse("I10", "고혈압"),
+                    DiseaseResponse("E11", "당뇨병"),
+                ),
+                allergies = listOf(
+                    AllergyResponse(
+                        type = AllergyType.INGREDIENT,
+                        value = "M249154",
+                        name = "페니실린",
+                    ),
+                    AllergyResponse(
+                        type = AllergyType.ATC_GROUP,
+                        value = "N02B",
+                        name = "아스피린",
+                    ),
+                ),
+                families = listOf(
+                    FamilyResponse(
+                        familyId = 1L,
+                        name = "홍길동",
+                        relation = "본인",
+                        isMe = true,
+                    ),
+                    FamilyResponse(
+                        familyId = 2L,
+                        name = "김영희",
+                        relation = "어머니",
+                        isMe = false,
+                    ),
+                    FamilyResponse(
+                        familyId = 3L,
+                        name = "홍철수",
+                        relation = "아버지",
+                        isMe = false,
+                    ),
+                ),
+                settings = UserNotificationSettingsResponse(
+                    isMyReminderOn = true,
+                    isFamilyReminderOn = false,
+                ),
+            ),
+            response,
+        )
+    }
+
+    @Test
+    fun `getMyProfile falls back to default notification settings when there is no device record`() {
+        val user = User(
+            id = 1L,
+            nickname = "홍길동",
+            socialId = "4903042739",
+            inviteCode = "A8F9K2",
+            isTutorialCompleted = false,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
+        given(familyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
+        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(null)
+
+        val response = userService.getMyProfile("4903042739")
+
+        assertEquals(
+            UserProfileResponse(
+                nickname = "홍길동",
+                inviteCode = "A8F9K2",
+                birthDate = null,
+                gender = null,
+                height = null,
+                weight = null,
+                bloodType = null,
+                rhType = null,
+                isTutorialCompleted = false,
+                diseases = emptyList(),
+                allergies = emptyList(),
+                families = listOf(
+                    FamilyResponse(
+                        familyId = 1L,
+                        name = "홍길동",
+                        relation = "본인",
+                        isMe = true,
+                    ),
+                ),
+                settings = UserNotificationSettingsResponse(
+                    isMyReminderOn = true,
+                    isFamilyReminderOn = true,
+                ),
+            ),
+            response,
+        )
+    }
+
+    @Test
+    fun `getMyProfile throws USER_NOT_FOUND when the member record is missing`() {
+        given(userRepository.findBySocialId("4903042739")).willReturn(null)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.getMyProfile("4903042739")
+        }
+
+        assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `completeTutorial stores health profile and marks tutorial complete`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -56,15 +293,15 @@ class UserServiceTest {
         )
         val request = TutorialRequest(
             birthDate = "1985-03-15",
-            gender = "MALE",
+            gender = "male",
             height = 180,
             weight = 75,
-            bloodType = "O",
-            rhType = "PLUS",
+            bloodType = "o",
+            rhType = "plus",
             diseaseCodes = listOf("D001", "D002"),
             allergies = listOf(
                 TutorialAllergyRequest(
-                    type = "FOOD",
+                    type = "food",
                     value = "Peanut",
                     name = "Peanut",
                 )
@@ -96,7 +333,53 @@ class UserServiceTest {
     }
 
     @Test
-    fun `생년월일 형식이 올바르지 않으면 INVALID_DATE_FORMAT 예외를 던진다`() {
+    fun `completeTutorial deduplicates disease mappings before saving`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+            isTutorialCompleted = false,
+        )
+        val request = TutorialRequest(
+            birthDate = "1985-03-15",
+            gender = "MALE",
+            height = 180,
+            weight = 75,
+            bloodType = "O",
+            rhType = "PLUS",
+            diseaseCodes = listOf("D001", "D001", "D002"),
+            allergies = emptyList(),
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(diseaseMasterRepository.findAllById(listOf("D001", "D002"))).willReturn(
+            listOf(
+                DiseaseMaster(
+                    diseaseCode = "D001",
+                    diseaseName = "Disease 1",
+                ),
+                DiseaseMaster(
+                    diseaseCode = "D002",
+                    diseaseName = "Disease 2",
+                ),
+            )
+        )
+
+        val response = userService.completeTutorial("4903042739", request)
+
+        @Suppress("UNCHECKED_CAST")
+        val diseaseMapsCaptor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<UserDiseaseMap>>
+
+        assertEquals(true, response.isTutorialCompleted)
+        verify(userDiseaseMapRepository).saveAll(diseaseMapsCaptor.capture())
+        assertEquals(
+            listOf("D001", "D002"),
+            diseaseMapsCaptor.value.map { it.disease.diseaseCode },
+        )
+    }
+
+    @Test
+    fun `invalid birth date format throws INVALID_DATE_FORMAT`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -118,7 +401,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `이미 튜토리얼을 완료한 유저면 예외를 던진다`() {
+    fun `already completed tutorial throws TUTORIAL_ALREADY_COMPLETED`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",

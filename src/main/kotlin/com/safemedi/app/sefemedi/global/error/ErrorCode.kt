@@ -65,7 +65,7 @@ enum class ErrorCode(
     PRESCRIPTION_ACCESS_DENIED(
         HttpStatus.FORBIDDEN,
         "MED_006",
-        "본인의 처방전만 삭제할 수 있습니다.",
+        "본인의 처방전만 수정하거나 삭제할 수 있습니다.",
     ),
     ENDED_PRESCRIPTION_UPDATE_NOT_ALLOWED(
         HttpStatus.BAD_REQUEST,

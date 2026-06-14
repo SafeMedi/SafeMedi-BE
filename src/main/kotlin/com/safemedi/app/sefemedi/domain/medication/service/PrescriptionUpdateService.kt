@@ -48,9 +48,7 @@ class PrescriptionUpdateService(
         }
 
         request.title?.let {
-            if (it.isBlank()) {
-                throw BusinessException(ErrorCode.INVALID_REQUEST)
-            }
+            validateTitle(it)
             prescription.updateTitle(it)
         }
 
@@ -126,6 +124,7 @@ class PrescriptionUpdateService(
                 prescription = prescription,
                 prescriptionDrugTimes = newTimes,
                 now = now,
+                today = today,
             )
         )
     }
@@ -135,6 +134,12 @@ class PrescriptionUpdateService(
             throw BusinessException(ErrorCode.INVALID_TAKE_TIMES)
         }
         takeTimes.forEach(::parseTakeTime)
+    }
+
+    private fun validateTitle(title: String) {
+        if (title.isBlank() || title.length > MAX_TITLE_LENGTH) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
     }
 
     private fun parseTakeTime(takeTime: String): LocalTime {
@@ -149,9 +154,10 @@ class PrescriptionUpdateService(
         prescription: Prescription,
         prescriptionDrugTimes: Iterable<PrescriptionDrugTime>,
         now: LocalDateTime,
+        today: LocalDate,
     ): List<MedicationRecord> {
         val records = mutableListOf<MedicationRecord>()
-        var date = prescription.startDate
+        var date = maxOf(prescription.startDate, today)
 
         while (!date.isAfter(prescription.endDate)) {
             prescriptionDrugTimes.forEach { prescriptionDrugTime ->
@@ -174,6 +180,7 @@ class PrescriptionUpdateService(
     }
 
     private companion object {
+        const val MAX_TITLE_LENGTH = 255
         val SERVICE_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
         val TAKE_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     }

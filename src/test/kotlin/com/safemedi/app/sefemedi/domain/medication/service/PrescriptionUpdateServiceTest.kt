@@ -124,6 +124,60 @@ class PrescriptionUpdateServiceTest {
     }
 
     @Test
+    fun `처방 시작일이 과거이면 오늘부터 미래 복약 기록을 재생성한다`() {
+        val today = LocalDate.now(SERVICE_ZONE_ID)
+        val prescription = Prescription(
+            id = 10L,
+            user = user,
+            title = "Old title",
+            startDate = today.minusDays(30),
+            endDate = today.plusDays(1),
+        )
+        val prescriptionDrug = PrescriptionDrug(
+            id = 1L,
+            prescription = prescription,
+            drugName = "Tylenol",
+        )
+        val oldTime = PrescriptionDrugTime(
+            id = 1L,
+            prescriptionDrug = prescriptionDrug,
+            takeTime = LocalTime.of(8, 0),
+        )
+        var savedRecords = emptyList<MedicationRecord>()
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(prescriptionRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(prescription)
+        given(prescriptionDrugRepository.findByPrescriptionIdAndIds(10L, listOf(1L)))
+            .willReturn(listOf(prescriptionDrug))
+        given(prescriptionDrugTimeRepository.findByPrescriptionDrugIds(listOf(1L)))
+            .willReturn(listOf(oldTime))
+        given(prescriptionDrugTimeRepository.saveAll(anyList<PrescriptionDrugTime>())).willAnswer {
+            it.arguments[0] as List<PrescriptionDrugTime>
+        }
+        given(medicationRecordRepository.saveAll(anyList<MedicationRecord>())).willAnswer {
+            val records = it.arguments[0] as List<MedicationRecord>
+            savedRecords = records
+            records
+        }
+
+        service.update(
+            socialId = "kakao-123",
+            prescriptionId = 10L,
+            request = PrescriptionUpdateRequest(
+                medications = listOf(
+                    PrescriptionMedicationUpdateRequest(
+                        prescriptionDrugId = 1L,
+                        takeTimes = listOf("23:59"),
+                    )
+                ),
+            ),
+        )
+
+        assertEquals(2, savedRecords.size)
+        assertEquals(listOf(today, today.plusDays(1)), savedRecords.map { it.scheduledAt.toLocalDate() })
+    }
+
+    @Test
     fun `종료된 처방전의 복용 시간은 수정할 수 없다`() {
         val prescription = Prescription(
             id = 10L,
@@ -152,6 +206,32 @@ class PrescriptionUpdateServiceTest {
         }
 
         assertEquals(ErrorCode.ENDED_PRESCRIPTION_UPDATE_NOT_ALLOWED, exception.errorCode)
+    }
+
+    @Test
+    fun `처방전 제목 길이 오류`() {
+        val prescription = Prescription(
+            id = 10L,
+            user = user,
+            title = "Old title",
+            startDate = LocalDate.now(SERVICE_ZONE_ID),
+            endDate = LocalDate.now(SERVICE_ZONE_ID).plusDays(1),
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(prescriptionRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(prescription)
+
+        val exception = assertFailsWith<BusinessException> {
+            service.update(
+                socialId = "kakao-123",
+                prescriptionId = 10L,
+                request = PrescriptionUpdateRequest(
+                    title = "a".repeat(256),
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.errorCode)
     }
 
     @Test

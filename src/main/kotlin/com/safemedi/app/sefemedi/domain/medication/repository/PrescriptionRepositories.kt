@@ -54,6 +54,19 @@ interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
     fun findDetailsByPrescriptionId(
         @Param("prescriptionId") prescriptionId: Long,
     ): List<PrescriptionDrug>
+
+    @Query(
+        """
+        select pd
+        from PrescriptionDrug pd
+        where pd.prescription.id = :prescriptionId
+          and pd.id in :prescriptionDrugIds
+        """
+    )
+    fun findByPrescriptionIdAndIds(
+        @Param("prescriptionId") prescriptionId: Long,
+        @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
+    ): List<PrescriptionDrug>
 }
 
 interface PrescriptionDrugCountProjection {
@@ -67,6 +80,7 @@ interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, L
         select pdt
         from PrescriptionDrugTime pdt
         where pdt.prescriptionDrug.id in :prescriptionDrugIds
+          and pdt.deletedAt is null
         order by pdt.takeTime asc, pdt.id asc
         """
     )
@@ -107,6 +121,23 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
     )
     fun deleteFuturePendingByPrescriptionId(
         @Param("prescriptionId") prescriptionId: Long,
+        @Param("status") status: MedicationStatus,
+        @Param("now") now: LocalDateTime,
+    ): Int
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from MedicationRecord mr
+        where mr.prescription.id = :prescriptionId
+          and mr.prescriptionDrugTime.prescriptionDrug.id in :prescriptionDrugIds
+          and mr.status = :status
+          and mr.scheduledAt > :now
+        """
+    )
+    fun deleteFuturePendingByPrescriptionIdAndPrescriptionDrugIds(
+        @Param("prescriptionId") prescriptionId: Long,
+        @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
         @Param("status") status: MedicationStatus,
         @Param("now") now: LocalDateTime,
     ): Int

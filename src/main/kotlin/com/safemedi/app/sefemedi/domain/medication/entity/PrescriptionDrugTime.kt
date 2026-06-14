@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.domain.medication.entity
 
 import jakarta.persistence.*
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Entity
@@ -15,5 +16,12 @@ class PrescriptionDrugTime(
     val prescriptionDrug: PrescriptionDrug,
 
     @Column(name = "take_time")
-    var takeTime: LocalTime
-)
+    var takeTime: LocalTime,
+
+    @Column(name = "deleted_at")
+    var deletedAt: LocalDateTime? = null
+) {
+    fun delete(deletedAt: LocalDateTime) {
+        this.deletedAt = deletedAt
+    }
+}

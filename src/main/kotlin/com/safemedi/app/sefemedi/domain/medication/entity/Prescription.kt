@@ -35,6 +35,10 @@ class Prescription(
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null
 ) : BaseTimeEntity() {
+    fun updateTitle(title: String) {
+        this.title = title
+    }
+
     fun delete(deletedAt: LocalDateTime) {
         this.deletedAt = deletedAt
     }

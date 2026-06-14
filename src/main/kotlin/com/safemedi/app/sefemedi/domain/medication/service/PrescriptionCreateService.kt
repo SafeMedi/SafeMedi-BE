@@ -94,6 +94,8 @@ class PrescriptionCreateService(
     }
 
     private fun validateRequest(request: PrescriptionCreateRequest) {
+        validateTitle(request.title)
+
         if (request.endDate.isBefore(request.startDate)) {
             throw BusinessException(ErrorCode.INVALID_PRESCRIPTION_DATE)
         }
@@ -114,6 +116,12 @@ class PrescriptionCreateService(
                 throw BusinessException(ErrorCode.INVALID_TAKE_TIMES)
             }
             it.takeTimes.forEach(::parseTakeTime)
+        }
+    }
+
+    private fun validateTitle(title: String) {
+        if (title.isBlank() || title.length > MAX_TITLE_LENGTH) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
     }
 
@@ -150,6 +158,7 @@ class PrescriptionCreateService(
     }
 
     private companion object {
+        const val MAX_TITLE_LENGTH = 255
         const val MAX_PRESCRIPTION_PERIOD_MONTHS = 6L
         val TAKE_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     }

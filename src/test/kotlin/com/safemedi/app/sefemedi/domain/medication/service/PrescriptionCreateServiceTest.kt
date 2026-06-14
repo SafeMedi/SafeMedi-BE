@@ -26,6 +26,7 @@ import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+@Suppress("UNCHECKED_CAST")
 class PrescriptionCreateServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var drugMasterRepository: DrugMasterRepository
@@ -108,6 +109,20 @@ class PrescriptionCreateServiceTest {
         }
 
         assertEquals(ErrorCode.INVALID_TAKE_TIMES, exception.errorCode)
+    }
+
+    @Test
+    fun `처방전 제목 길이 오류`() {
+        val exception = assertFailsWith<BusinessException> {
+            service.create(
+                socialId = "kakao-123",
+                request = validRequest().copy(
+                    title = "a".repeat(256),
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.errorCode)
     }
 
     @Test

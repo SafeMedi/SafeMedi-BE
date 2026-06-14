@@ -65,12 +65,22 @@ enum class ErrorCode(
     PRESCRIPTION_ACCESS_DENIED(
         HttpStatus.FORBIDDEN,
         "MED_006",
-        "본인의 처방전만 삭제할 수 있습니다.",
+        "본인의 처방전만 수정하거나 삭제할 수 있습니다.",
+    ),
+    ENDED_PRESCRIPTION_UPDATE_NOT_ALLOWED(
+        HttpStatus.BAD_REQUEST,
+        "MED_007",
+        "이미 복용 기간이 종료된 처방전의 시간은 수정할 수 없습니다.",
     ),
     DOCTOR_APPROVAL_REQUIRED(
         HttpStatus.BAD_REQUEST,
         "MED_009",
         "위험 요소가 발견되었으나, 의사 상담 확인(isDoctorApproved)이 누락되었습니다.",
+    ),
+    PRESCRIPTION_DRUG_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "MED_010",
+        "수정하려는 처방 약물이 해당 처방전에 존재하지 않습니다.",
     ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,

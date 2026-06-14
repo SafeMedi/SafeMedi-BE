@@ -1,19 +1,79 @@
 package com.safemedi.app.sefemedi.domain.medication.repository
 
 import com.safemedi.app.sefemedi.domain.medication.entity.MedicationRecord
+import com.safemedi.app.sefemedi.domain.medication.entity.MedicationStatus
 import com.safemedi.app.sefemedi.domain.medication.entity.Prescription
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrug
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrugTime
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
-interface PrescriptionRepository : JpaRepository<Prescription, Long>
+interface PrescriptionRepository : JpaRepository<Prescription, Long> {
+    fun findByUserIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
+        userId: Long,
+        pageable: Pageable,
+    ): Slice<Prescription>
 
-interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long>
+    fun findByIdAndDeletedAtIsNull(
+        id: Long,
+    ): Prescription?
 
-interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, Long>
+    fun findByIdAndUserIdAndDeletedAtIsNull(
+        id: Long,
+        userId: Long,
+    ): Prescription?
+}
+
+interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
+    @Query(
+        """
+        select pd.prescription.id as prescriptionId, count(pd.id) as drugCount
+        from PrescriptionDrug pd
+        where pd.prescription.id in :prescriptionIds
+        group by pd.prescription.id
+        """
+    )
+    fun countByPrescriptionIds(
+        @Param("prescriptionIds") prescriptionIds: Collection<Long>,
+    ): List<PrescriptionDrugCountProjection>
+
+    @Query(
+        """
+        select pd
+        from PrescriptionDrug pd
+        left join fetch pd.drug
+        where pd.prescription.id = :prescriptionId
+        order by pd.id asc
+        """
+    )
+    fun findDetailsByPrescriptionId(
+        @Param("prescriptionId") prescriptionId: Long,
+    ): List<PrescriptionDrug>
+}
+
+interface PrescriptionDrugCountProjection {
+    val prescriptionId: Long
+    val drugCount: Long
+}
+
+interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, Long> {
+    @Query(
+        """
+        select pdt
+        from PrescriptionDrugTime pdt
+        where pdt.prescriptionDrug.id in :prescriptionDrugIds
+        order by pdt.takeTime asc, pdt.id asc
+        """
+    )
+    fun findByPrescriptionDrugIds(
+        @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
+    ): List<PrescriptionDrugTime>
+}
 
 interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
     @Query(
@@ -26,6 +86,7 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         where mr.user.id = :userId
           and mr.scheduledAt >= :startAt
           and mr.scheduledAt < :endAt
+          and p.deletedAt is null
         order by mr.scheduledAt asc, p.id asc, pd.id asc
         """
     )
@@ -34,4 +95,19 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         @Param("startAt") startAt: LocalDateTime,
         @Param("endAt") endAt: LocalDateTime,
     ): List<MedicationRecord>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from MedicationRecord mr
+        where mr.prescription.id = :prescriptionId
+          and mr.status = :status
+          and mr.scheduledAt > :now
+        """
+    )
+    fun deleteFuturePendingByPrescriptionId(
+        @Param("prescriptionId") prescriptionId: Long,
+        @Param("status") status: MedicationStatus,
+        @Param("now") now: LocalDateTime,
+    ): Int
 }

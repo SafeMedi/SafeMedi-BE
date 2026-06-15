@@ -94,6 +94,7 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         """
         select mr
         from MedicationRecord mr
+        join fetch mr.user u
         join fetch mr.prescription p
         where mr.id = :recordId
           and p.deletedAt is null

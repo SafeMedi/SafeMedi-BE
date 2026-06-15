@@ -1,0 +1,11 @@
+package com.safemedi.app.sefemedi.domain.medication.dto
+
+import java.time.LocalDateTime
+
+data class MedicationRecordUpdateResponse(
+    val recordId: Long,
+    val prescriptionId: Long,
+    val scheduledAt: LocalDateTime,
+    val takenAt: LocalDateTime?,
+    val status: String,
+)

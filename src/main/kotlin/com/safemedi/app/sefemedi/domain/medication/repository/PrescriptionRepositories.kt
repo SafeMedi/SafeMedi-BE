@@ -95,6 +95,19 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         select mr
         from MedicationRecord mr
         join fetch mr.prescription p
+        where mr.id = :recordId
+          and p.deletedAt is null
+        """
+    )
+    fun findActiveById(
+        @Param("recordId") recordId: Long,
+    ): MedicationRecord?
+
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
+        join fetch mr.prescription p
         join fetch mr.prescriptionDrugTime pdt
         join fetch pdt.prescriptionDrug pd
         where mr.user.id = :userId

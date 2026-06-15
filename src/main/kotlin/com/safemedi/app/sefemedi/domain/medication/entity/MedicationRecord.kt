@@ -32,4 +32,12 @@ class MedicationRecord(
 
     @Enumerated(EnumType.STRING)
     var status: MedicationStatus = MedicationStatus.PENDING
-) : BaseTimeEntity()
+) : BaseTimeEntity() {
+    fun updateStatus(
+        status: MedicationStatus,
+        takenAt: LocalDateTime?,
+    ) {
+        this.status = status
+        this.takenAt = takenAt
+    }
+}

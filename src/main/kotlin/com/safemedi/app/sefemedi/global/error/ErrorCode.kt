@@ -82,6 +82,16 @@ enum class ErrorCode(
         "MED_010",
         "수정하려는 처방 약물이 해당 처방전에 존재하지 않습니다.",
     ),
+    MEDICATION_RECORD_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "REC_001",
+        "존재하지 않는 복약 기록입니다.",
+    ),
+    MEDICATION_RECORD_ALREADY_PROCESSED(
+        HttpStatus.CONFLICT,
+        "REC_002",
+        "해당 시간에 이미 복용 처리가 완료된 기록입니다.",
+    ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",

@@ -55,3 +55,26 @@ jobs:
             --name spring-dev-container \
             --restart on-failure:5 \
             spring-dev-image
+
+            
+            docker stop prometheus || true
+            docker rm prometheus || true
+            
+            docker run -d \
+              --name prometheus \
+              --restart on-failure:5 \
+              -p 9090:9090 \
+              -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml \
+              prom/prometheus
+
+            docker stop grafana || true
+            docker rm grafana || true
+            
+            docker run -d \
+              --name grafana \
+              --restart on-failure:5 \
+              -p 3000:3000 \
+              -e "GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}" \
+              grafana/grafana
+            
+            docker image prune -af

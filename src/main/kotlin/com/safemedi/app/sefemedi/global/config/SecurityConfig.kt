@@ -43,6 +43,8 @@ class SecurityConfig(
                     "/swagger-ui/**",
                     "/v3/api-docs",
                     "/v3/api-docs/**",
+                    "/actuator/health",
+                    "/actuator/prometheus",
                 ).permitAll()
 
                 it.requestMatchers(

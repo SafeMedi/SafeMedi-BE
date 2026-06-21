@@ -22,6 +22,7 @@ class AuthServiceTest {
     private lateinit var jwtProvider: JwtProvider
     private lateinit var userRepository: UserRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
+    private lateinit var socialLoginVerifier: SocialLoginVerifier
     private lateinit var authService: AuthService
 
     @BeforeEach
@@ -29,18 +30,18 @@ class AuthServiceTest {
         jwtProvider = mock(JwtProvider::class.java)
         userRepository = mock(UserRepository::class.java)
         refreshTokenRepository = mock(RefreshTokenRepository::class.java)
+        socialLoginVerifier = object : SocialLoginVerifier {
+            override fun resolveSocialId(accessToken: String): String {
+                return "4903042739"
+            }
+        }
 
         authService = AuthService(
             jwtProvider = jwtProvider,
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
-        ).apply {
-            socialLoginVerifier = object : SocialLoginVerifier {
-                override fun resolveSocialId(accessToken: String): String {
-                    return "4903042739"
-                }
-            }
-        }
+            socialLoginVerifier = socialLoginVerifier,
+        )
     }
 
     @Test

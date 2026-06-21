@@ -11,7 +11,6 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.Locale
@@ -22,10 +21,8 @@ class AuthService(
     private val jwtProvider: JwtProvider,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val socialLoginVerifier: SocialLoginVerifier = KakaoSocialLoginVerifier()
 ) {
-
-    @Autowired(required = false)
-    var socialLoginVerifier: SocialLoginVerifier = KakaoSocialLoginVerifier()
 
     @Transactional
     fun login(

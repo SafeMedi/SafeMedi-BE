@@ -97,6 +97,11 @@ enum class ErrorCode(
         "AUTH_001",
         "유효하지 않은 토큰입니다.",
     ),
+    UNSUPPORTED_SOCIAL_LOGIN_PROVIDER(
+        HttpStatus.BAD_REQUEST,
+        "AUTH_002",
+        "지원하지 않는 소셜 로그인 서비스입니다.",
+    ),
     INVALID_ACCESS_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_003",

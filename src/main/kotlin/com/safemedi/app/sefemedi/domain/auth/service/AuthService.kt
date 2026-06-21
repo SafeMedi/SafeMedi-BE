@@ -1,15 +1,20 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
-import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
+import com.safemedi.app.sefemedi.domain.auth.client.KakaoSocialLoginVerifier
+import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
+import com.safemedi.app.sefemedi.domain.auth.dto.LoginResponse
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
+import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.Locale
 
 @Service
 class AuthService(
@@ -19,30 +24,42 @@ class AuthService(
     private val refreshTokenRepository: RefreshTokenRepository,
 ) {
 
+    @Autowired(required = false)
+    var socialLoginVerifier: SocialLoginVerifier = KakaoSocialLoginVerifier()
+
+    @Transactional
+    fun login(
+        provider: String,
+        accessToken: String
+    ): LoginResponse {
+        requireSupportedProvider(
+            provider,
+        )
+
+        val kakaoId =
+            socialLoginVerifier.resolveSocialId(
+                accessToken = accessToken,
+            )
+
+        val issuedTokens =
+            issueTokensInternal(
+                kakaoId = kakaoId,
+            )
+
+        return LoginResponse(
+            accessToken = issuedTokens.tokenResponse.accessToken,
+            refreshToken = issuedTokens.tokenResponse.refreshToken,
+            isTutorialCompleted = issuedTokens.user.isTutorialCompleted,
+        )
+    }
+
     @Transactional
     fun issueTokens(
         kakaoId: String
     ): TokenResponse {
-        val user =
-            findUserBySocialId(
-                kakaoId,
-            )
-
-        val accessToken =
-            jwtProvider.createAccessToken(kakaoId)
-
-        val refreshToken =
-            jwtProvider.createRefreshToken(kakaoId)
-
-        saveRefreshToken(
-            user = user,
-            token = refreshToken
-        )
-
-        return TokenResponse(
-            accessToken = accessToken,
-            refreshToken = refreshToken
-        )
+        return issueTokensInternal(
+            kakaoId = kakaoId,
+        ).tokenResponse
     }
 
     @Transactional
@@ -88,6 +105,42 @@ class AuthService(
         )
     }
 
+    private fun requireSupportedProvider(
+        provider: String
+    ) {
+        if (provider.trim().lowercase(Locale.ROOT) != KAKAO_PROVIDER) {
+            throw BusinessException(ErrorCode.UNSUPPORTED_SOCIAL_LOGIN_PROVIDER)
+        }
+    }
+
+    private fun issueTokensInternal(
+        kakaoId: String
+    ): IssuedTokens {
+        val user =
+            findOrCreateUserBySocialId(
+                kakaoId,
+            )
+
+        val accessToken =
+            jwtProvider.createAccessToken(kakaoId)
+
+        val refreshToken =
+            jwtProvider.createRefreshToken(kakaoId)
+
+        saveRefreshToken(
+            user = user,
+            token = refreshToken
+        )
+
+        return IssuedTokens(
+            user = user,
+            tokenResponse = TokenResponse(
+                accessToken = accessToken,
+                refreshToken = refreshToken
+            )
+        )
+    }
+
     private fun saveRefreshToken(
         user: User,
         token: String
@@ -112,6 +165,18 @@ class AuthService(
         )
     }
 
+    private fun findOrCreateUserBySocialId(
+        kakaoId: String
+    ): User {
+        return userRepository.findBySocialId(
+            kakaoId
+        ) ?: userRepository.save(
+            User(
+                socialId = kakaoId
+            )
+        )
+    }
+
     private fun findUserBySocialId(
         kakaoId: String
     ) = userRepository.findBySocialId(
@@ -122,5 +187,14 @@ class AuthService(
         user: User
     ): Long {
         return user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+    }
+
+    private data class IssuedTokens(
+        val user: User,
+        val tokenResponse: TokenResponse,
+    )
+
+    private companion object {
+        const val KAKAO_PROVIDER = "kakao"
     }
 }

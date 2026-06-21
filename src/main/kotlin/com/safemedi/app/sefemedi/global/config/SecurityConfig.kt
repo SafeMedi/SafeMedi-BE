@@ -3,8 +3,6 @@ package com.safemedi.app.sefemedi.global.config
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.error.ErrorResponse
 import com.safemedi.app.sefemedi.global.jwt.JwtAuthenticationFilter
-import com.safemedi.app.sefemedi.global.security.CustomOAuth2UserService
-import com.safemedi.app.sefemedi.global.security.OAuth2SuccessHandler
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -20,8 +18,6 @@ import tools.jackson.databind.json.JsonMapper
 class SecurityConfig(
 
     private val jsonMapper: JsonMapper,
-    private val customOAuth2UserService: CustomOAuth2UserService,
-    private val oAuth2SuccessHandler: OAuth2SuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
 ) {
 
@@ -41,8 +37,8 @@ class SecurityConfig(
             }
             .authorizeHttpRequests {
                 it.requestMatchers(
-                    "/api/v1/login/kakao",
-                    "/auth/reissue",
+                    "/auth/**",
+                    "/api/v1/auth/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/v3/api-docs",
@@ -70,26 +66,6 @@ class SecurityConfig(
                 it.accessDeniedHandler { _, response, _ ->
                     response.status = HttpStatus.FORBIDDEN.value()
                 }
-            }
-
-            .oauth2Login {
-
-                it.authorizationEndpoint { authorization ->
-
-                    authorization.baseUri(
-                        "/api/v1/login",
-                    )
-                }
-
-                it.userInfoEndpoint { userInfo ->
-
-                    userInfo.userService(
-                        customOAuth2UserService,
-                    )
-                }
-                it.successHandler(
-                    oAuth2SuccessHandler,
-                )
             }
             .addFilterBefore(
                 jwtAuthenticationFilter,

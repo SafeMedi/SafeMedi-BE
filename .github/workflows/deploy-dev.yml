@@ -49,10 +49,6 @@ jobs:
             
             docker run -d -p 8081:8080 \
             -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            -e KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}" \
-            -e KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
-            -e KAKAO_REDIRECT_URI="http://35.223.15.211:8081/login/oauth2/code/kakao" \
-            -e SUCCESS_REDIRECT_URL="${{ secrets.SUCCESS_REDIRECT_URL }}" \
             -e DB_URL="${{ secrets.DB_URL }}" \
             -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
             -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \

@@ -72,11 +72,6 @@ enum class ErrorCode(
         "MED_007",
         "이미 복용 기간이 종료된 처방전의 시간은 수정할 수 없습니다.",
     ),
-    DOCTOR_APPROVAL_REQUIRED(
-        HttpStatus.BAD_REQUEST,
-        "MED_009",
-        "위험 요소가 발견되었으나, 의사 상담 확인(isDoctorApproved)이 누락되었습니다.",
-    ),
     PRESCRIPTION_DRUG_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "MED_010",
@@ -96,6 +91,11 @@ enum class ErrorCode(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",
         "유효하지 않은 토큰입니다.",
+    ),
+    UNSUPPORTED_SOCIAL_LOGIN_PROVIDER(
+        HttpStatus.BAD_REQUEST,
+        "AUTH_002",
+        "지원하지 않는 소셜 로그인 서비스입니다.",
     ),
     INVALID_ACCESS_TOKEN(
         HttpStatus.UNAUTHORIZED,

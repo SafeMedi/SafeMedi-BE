@@ -13,15 +13,13 @@ import java.net.http.HttpResponse
 import java.time.Duration
 
 @Component
-class KakaoSocialLoginVerifier : SocialLoginVerifier {
+class KakaoSocialLoginVerifier(
+    private val jsonMapper: JsonMapper
+) : SocialLoginVerifier {
 
     private val httpClient =
         HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
-            .build()
-
-    private val jsonMapper =
-        JsonMapper.builder()
             .build()
 
     override fun resolveSocialId(

@@ -1,6 +1,5 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
-import com.safemedi.app.sefemedi.domain.auth.client.KakaoSocialLoginVerifier
 import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
 import com.safemedi.app.sefemedi.domain.auth.dto.LoginResponse
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
@@ -21,7 +20,7 @@ class AuthService(
     private val jwtProvider: JwtProvider,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val socialLoginVerifier: SocialLoginVerifier = KakaoSocialLoginVerifier()
+    private val socialLoginVerifier: SocialLoginVerifier
 ) {
 
     @Transactional

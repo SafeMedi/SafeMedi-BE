@@ -72,11 +72,6 @@ enum class ErrorCode(
         "MED_007",
         "이미 복용 기간이 종료된 처방전의 시간은 수정할 수 없습니다.",
     ),
-    DOCTOR_APPROVAL_REQUIRED(
-        HttpStatus.BAD_REQUEST,
-        "MED_009",
-        "위험 요소가 발견되었으나, 의사 상담 확인(isDoctorApproved)이 누락되었습니다.",
-    ),
     PRESCRIPTION_DRUG_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "MED_010",

@@ -54,15 +54,6 @@ class AuthService(
     }
 
     @Transactional
-    fun issueTokens(
-        kakaoId: String
-    ): TokenResponse {
-        return issueTokensInternal(
-            kakaoId = kakaoId,
-        ).tokenResponse
-    }
-
-    @Transactional
     fun reissue(
         refreshToken: String
     ): TokenResponse {

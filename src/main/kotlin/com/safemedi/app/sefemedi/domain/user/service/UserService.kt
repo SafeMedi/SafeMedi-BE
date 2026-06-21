@@ -3,6 +3,8 @@ package com.safemedi.app.sefemedi.domain.user.service
 import com.safemedi.app.sefemedi.domain.drug.repository.DiseaseMasterRepository
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
 import com.safemedi.app.sefemedi.domain.user.dto.AllergyResponse
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.DiseaseResponse
 import com.safemedi.app.sefemedi.domain.user.dto.FamilyResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
@@ -11,8 +13,10 @@ import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsRespons
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.entity.AllergyType
 import com.safemedi.app.sefemedi.domain.user.entity.BloodType
+import com.safemedi.app.sefemedi.domain.user.entity.DeviceType
 import com.safemedi.app.sefemedi.domain.user.entity.Gender
 import com.safemedi.app.sefemedi.domain.user.entity.RhType
+import com.safemedi.app.sefemedi.domain.user.entity.UserDevice
 import com.safemedi.app.sefemedi.domain.user.entity.UserAllergy
 import com.safemedi.app.sefemedi.domain.user.entity.UserDiseaseMap
 import com.safemedi.app.sefemedi.domain.user.entity.UserHealthProfile
@@ -174,6 +178,34 @@ class UserService(
         )
     }
 
+    @Transactional
+    fun registerDeviceToken(
+        socialId: String,
+        request: DeviceTokenRequest,
+    ): DeviceTokenResponse {
+        val deviceToken = validateDeviceToken(request.deviceToken)
+        val deviceType = validateDeviceType(request.deviceType)
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        val userDevice = userDeviceRepository.findByDeviceToken(deviceToken)
+            ?: UserDevice(
+                user = user,
+                deviceToken = deviceToken,
+                deviceType = deviceType.name,
+            )
+
+        userDevice.register(
+            user = user,
+            deviceType = deviceType.name,
+        )
+
+        val savedDevice = userDeviceRepository.save(userDevice)
+
+        return DeviceTokenResponse(
+            deviceId = savedDevice.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+        )
+    }
+
     private fun parseBirthDate(birthDate: String): LocalDate {
         return try {
             LocalDate.parse(birthDate)
@@ -188,5 +220,34 @@ class UserService(
         } catch (_: IllegalArgumentException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }
+    }
+
+    private fun validateDeviceToken(deviceToken: String?): String {
+        val trimmedToken = deviceToken?.trim()
+        if (trimmedToken.isNullOrBlank()) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
+        if (trimmedToken.length > MAX_DEVICE_TOKEN_LENGTH) {
+            throw BusinessException(ErrorCode.DEVICE_TOKEN_TOO_LONG)
+        }
+
+        return trimmedToken
+    }
+
+    private fun validateDeviceType(deviceType: String?): DeviceType {
+        val trimmedType = deviceType?.trim()
+        if (trimmedType.isNullOrBlank()) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
+
+        return try {
+            enumValueOf<DeviceType>(trimmedType.uppercase())
+        } catch (_: IllegalArgumentException) {
+            throw BusinessException(ErrorCode.UNSUPPORTED_DEVICE_TYPE)
+        }
+    }
+
+    private companion object {
+        const val MAX_DEVICE_TOKEN_LENGTH = 512
     }
 }

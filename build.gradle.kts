@@ -25,6 +25,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 
 	// Kotlin
 	implementation("tools.jackson.module:jackson-module-kotlin")
@@ -32,6 +33,9 @@ dependencies {
 
 	// MySQL
 	runtimeOnly("com.mysql:mysql-connector-j")
+
+	// Monitoring
+	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
 	// JWT
 	implementation("io.jsonwebtoken:jjwt-api:0.12.7")

@@ -467,6 +467,9 @@ class UserServiceTest {
             deviceToken = "device-token",
             deviceType = "IOS",
             isActive = false,
+            isMyReminderOn = false,
+            isFamilyReminderOn = false,
+            isMissedAlertOn = false,
         )
 
         given(userRepository.findBySocialId("4903042739")).willReturn(currentUser)
@@ -485,6 +488,9 @@ class UserServiceTest {
         assertEquals(currentUser, existingDevice.user)
         assertEquals("ANDROID", existingDevice.deviceType)
         assertEquals(true, existingDevice.isActive)
+        assertEquals(true, existingDevice.isMyReminderOn)
+        assertEquals(true, existingDevice.isFamilyReminderOn)
+        assertEquals(true, existingDevice.isMissedAlertOn)
     }
 
     @Test

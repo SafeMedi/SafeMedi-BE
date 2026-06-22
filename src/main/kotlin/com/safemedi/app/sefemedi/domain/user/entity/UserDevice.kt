@@ -36,6 +36,12 @@ class UserDevice(
         user: User,
         deviceType: String,
     ) {
+        if (this.user.id != user.id) {
+            this.isMyReminderOn = true
+            this.isFamilyReminderOn = true
+            this.isMissedAlertOn = true
+        }
+
         this.user = user
         this.deviceType = deviceType
         this.isActive = true

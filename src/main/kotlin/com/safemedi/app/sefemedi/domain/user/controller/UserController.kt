@@ -6,6 +6,7 @@ import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
 import org.springframework.http.HttpStatus
@@ -30,6 +31,15 @@ class UserController(
         authentication: Authentication,
     ): UserProfileResponse {
         return userService.getMyProfile(
+            authentication.name,
+        )
+    }
+
+    @GetMapping("/notification-settings")
+    fun getNotificationSettings(
+        authentication: Authentication,
+    ): UserNotificationSettingsResponse {
+        return userService.getNotificationSettings(
             authentication.name,
         )
     }

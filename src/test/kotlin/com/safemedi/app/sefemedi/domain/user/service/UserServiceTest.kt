@@ -166,6 +166,7 @@ class UserServiceTest {
                 deviceType = "ANDROID",
                 isMyReminderOn = true,
                 isFamilyReminderOn = false,
+                isMissedAlertOn = false,
             )
         )
 
@@ -221,6 +222,7 @@ class UserServiceTest {
                 settings = UserNotificationSettingsResponse(
                     isMyReminderOn = true,
                     isFamilyReminderOn = false,
+                    isMissedAlertOn = false,
                 ),
             ),
             response,
@@ -270,7 +272,61 @@ class UserServiceTest {
                 settings = UserNotificationSettingsResponse(
                     isMyReminderOn = true,
                     isFamilyReminderOn = true,
+                    isMissedAlertOn = true,
                 ),
+            ),
+            response,
+        )
+    }
+
+    @Test
+    fun `getNotificationSettings returns latest device notification settings`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isMyReminderOn = false,
+            isFamilyReminderOn = true,
+            isMissedAlertOn = false,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(userDevice)
+
+        val response = userService.getNotificationSettings("4903042739")
+
+        assertEquals(
+            UserNotificationSettingsResponse(
+                isMyReminderOn = false,
+                isFamilyReminderOn = true,
+                isMissedAlertOn = false,
+            ),
+            response,
+        )
+    }
+
+    @Test
+    fun `getNotificationSettings returns default settings when there is no device record`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(null)
+
+        val response = userService.getNotificationSettings("4903042739")
+
+        assertEquals(
+            UserNotificationSettingsResponse(
+                isMyReminderOn = true,
+                isFamilyReminderOn = true,
+                isMissedAlertOn = true,
             ),
             response,
         )

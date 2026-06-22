@@ -3,6 +3,8 @@ package com.safemedi.app.sefemedi.domain.user.service
 import com.safemedi.app.sefemedi.domain.drug.repository.DiseaseMasterRepository
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
 import com.safemedi.app.sefemedi.domain.user.dto.AllergyResponse
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenDeactivateRequest
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenDeactivateResponse
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.DiseaseResponse
@@ -204,6 +206,28 @@ class UserService(
         return DeviceTokenResponse(
             deviceId = savedDevice.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
         )
+    }
+
+    @Transactional
+    fun deactivateDeviceToken(
+        socialId: String,
+        request: DeviceTokenDeactivateRequest,
+    ): DeviceTokenDeactivateResponse {
+        val deviceToken = validateDeviceToken(request.deviceToken)
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        val userId = user.id
+            ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        val userDevice = userDeviceRepository.findByDeviceToken(deviceToken)
+            ?: throw BusinessException(ErrorCode.DEVICE_TOKEN_NOT_FOUND)
+
+        if (userDevice.user.id != userId) {
+            throw BusinessException(ErrorCode.DEVICE_TOKEN_ACCESS_DENIED)
+        }
+
+        userDevice.deactivate()
+
+        return DeviceTokenDeactivateResponse()
     }
 
     private fun parseBirthDate(birthDate: String): LocalDate {

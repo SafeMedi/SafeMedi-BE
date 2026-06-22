@@ -43,10 +43,12 @@ jobs:
             cp build/libs/*-SNAPSHOT.jar app.jar
             
             docker build -t spring-dev-image .
+          
+            docker network create monitoring-net || true
             
             docker stop spring-dev-container || true
             docker rm spring-dev-container || true
-            
+
             docker run -d -p 8081:8080 \
             -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             -e DB_URL="${{ secrets.DB_URL }}" \
@@ -54,28 +56,29 @@ jobs:
             -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --name spring-dev-container \
             --restart on-failure:5 \
+            --network monitoring-net \
             spring-dev-image
-
             
             docker stop prometheus || true
             docker rm prometheus || true
             
             docker run -d \
-              --name prometheus \
-              --restart on-failure:5 \
-              -p 9090:9090 \
-              -v $HOME/prometheus.yml:/etc/prometheus/prometheus.yml \
-              prom/prometheus
-
-              docker stop grafana || true
-              docker rm grafana || true
-
-              docker run -d \
-              --name grafana \
-              --restart on-failure:5 \
-              -p 3000:3000 \
-              -v grafana-data:/var/lib/grafana \
-              -e "GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}" \
-              grafana/grafana
+            --name prometheus \
+            --restart on-failure:5 \
+            --network monitoring-net \
+            -v $HOME/prometheus.yml:/etc/prometheus/prometheus.yml \
+            prom/prometheus
+          
+            docker stop grafana || true
+            docker rm grafana || true
+    
+            docker run -d \
+            --name grafana \
+            --restart on-failure:5 \
+            -p 3000:3000 \
+            -v grafana-data:/var/lib/grafana \
+            --network monitoring-net \
+            -e "GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}" \
+            grafana/grafana
             
             docker image prune -af

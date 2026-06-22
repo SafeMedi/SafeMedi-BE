@@ -46,4 +46,8 @@ class UserDevice(
         this.deviceType = deviceType
         this.isActive = true
     }
+
+    fun deactivate() {
+        this.isActive = false
+    }
 }

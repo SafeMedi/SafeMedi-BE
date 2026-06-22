@@ -5,6 +5,7 @@ import com.safemedi.app.sefemedi.domain.drug.repository.DiseaseMasterRepository
 import com.safemedi.app.sefemedi.domain.family.entity.Family
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
 import com.safemedi.app.sefemedi.domain.user.dto.AllergyResponse
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenDeactivateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DiseaseResponse
 import com.safemedi.app.sefemedi.domain.user.dto.FamilyResponse
@@ -550,5 +551,119 @@ class UserServiceTest {
         }
 
         assertEquals(ErrorCode.UNSUPPORTED_DEVICE_TYPE, exception.errorCode)
+    }
+
+    @Test
+    fun `deactivateDeviceToken deactivates current user's device token`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+        given(userDeviceRepository.save(userDevice)).willReturn(userDevice)
+
+        val response = userService.deactivateDeviceToken(
+            socialId = "4903042739",
+            request = DeviceTokenDeactivateRequest(
+                deviceToken = "device-token",
+            ),
+        )
+
+        assertEquals("기기 푸시 토큰이 성공적으로 해제되었습니다.", response.message)
+        assertEquals(false, userDevice.isActive)
+        verify(userDeviceRepository).save(userDevice)
+    }
+
+    @Test
+    fun `deactivateDeviceToken succeeds when token is already inactive`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = false,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+        given(userDeviceRepository.save(userDevice)).willReturn(userDevice)
+
+        val response = userService.deactivateDeviceToken(
+            socialId = "4903042739",
+            request = DeviceTokenDeactivateRequest(
+                deviceToken = "device-token",
+            ),
+        )
+
+        assertEquals("기기 푸시 토큰이 성공적으로 해제되었습니다.", response.message)
+        assertEquals(false, userDevice.isActive)
+    }
+
+    @Test
+    fun `deactivateDeviceToken throws DEVICE_TOKEN_NOT_FOUND when token does not exist`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(null)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.deactivateDeviceToken(
+                socialId = "4903042739",
+                request = DeviceTokenDeactivateRequest(
+                    deviceToken = "device-token",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.DEVICE_TOKEN_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `deactivateDeviceToken throws DEVICE_TOKEN_ACCESS_DENIED when token belongs to another user`() {
+        val currentUser = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val otherUser = User(
+            id = 2L,
+            socialId = "other",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = otherUser,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(currentUser)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.deactivateDeviceToken(
+                socialId = "4903042739",
+                request = DeviceTokenDeactivateRequest(
+                    deviceToken = "device-token",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.DEVICE_TOKEN_ACCESS_DENIED, exception.errorCode)
     }
 }

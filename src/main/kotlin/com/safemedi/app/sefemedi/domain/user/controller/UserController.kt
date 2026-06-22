@@ -1,5 +1,7 @@
 package com.safemedi.app.sefemedi.domain.user.controller
 
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenDeactivateRequest
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenDeactivateResponse
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
@@ -8,6 +10,7 @@ import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -48,6 +51,17 @@ class UserController(
         @RequestBody request: DeviceTokenRequest,
     ): DeviceTokenResponse {
         return userService.registerDeviceToken(
+            authentication.name,
+            request,
+        )
+    }
+
+    @DeleteMapping("/device-token")
+    fun deactivateDeviceToken(
+        authentication: Authentication,
+        @RequestBody request: DeviceTokenDeactivateRequest,
+    ): DeviceTokenDeactivateResponse {
+        return userService.deactivateDeviceToken(
             authentication.name,
             request,
         )

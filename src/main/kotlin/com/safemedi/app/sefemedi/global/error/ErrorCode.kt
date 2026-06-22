@@ -37,6 +37,16 @@ enum class ErrorCode(
         "VAL_003",
         "deviceType은 IOS 또는 ANDROID만 지원합니다.",
     ),
+    DEVICE_TOKEN_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "NOTI_001",
+        "해당 기기 토큰을 해제할 권한이 없습니다.",
+    ),
+    DEVICE_TOKEN_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "NOTI_002",
+        "존재하지 않는 기기 토큰입니다.",
+    ),
     TUTORIAL_ALREADY_COMPLETED(
         HttpStatus.BAD_REQUEST,
         "TUT_001",

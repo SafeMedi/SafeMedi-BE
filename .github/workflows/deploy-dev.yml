@@ -64,16 +64,17 @@ jobs:
               --name prometheus \
               --restart on-failure:5 \
               -p 9090:9090 \
-              -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml \
+              -v $HOME/prometheus.yml:/etc/prometheus/prometheus.yml \
               prom/prometheus
 
-            docker stop grafana || true
-            docker rm grafana || true
-            
-            docker run -d \
+              docker stop grafana || true
+              docker rm grafana || true
+
+              docker run -d \
               --name grafana \
               --restart on-failure:5 \
               -p 3000:3000 \
+              -v grafana-data:/var/lib/grafana \
               -e "GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}" \
               grafana/grafana
             

@@ -22,10 +22,20 @@ enum class ErrorCode(
         "VAL_002",
         "존재하지 않는 기저질환 코드가 포함되어 있습니다.",
     ),
+    DEVICE_TOKEN_TOO_LONG(
+        HttpStatus.BAD_REQUEST,
+        "VAL_002",
+        "deviceToken은 512자를 초과할 수 없습니다.",
+    ),
     INVALID_DATE_FORMAT(
         HttpStatus.BAD_REQUEST,
         "VAL_003",
         "생년월일 형식이 올바르지 않습니다.",
+    ),
+    UNSUPPORTED_DEVICE_TYPE(
+        HttpStatus.BAD_REQUEST,
+        "VAL_003",
+        "deviceType은 IOS 또는 ANDROID만 지원합니다.",
     ),
     TUTORIAL_ALREADY_COMPLETED(
         HttpStatus.BAD_REQUEST,

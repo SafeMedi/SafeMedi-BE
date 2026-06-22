@@ -8,4 +8,8 @@ interface UserDeviceRepository : JpaRepository<UserDevice, Long> {
     fun findFirstByUser_IdOrderByCreatedAtDesc(
         userId: Long,
     ): UserDevice?
+
+    fun findByDeviceToken(
+        deviceToken: String,
+    ): UserDevice?
 }

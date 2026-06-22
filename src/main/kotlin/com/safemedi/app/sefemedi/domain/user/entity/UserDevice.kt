@@ -12,9 +12,9 @@ class UserDevice(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    val user: User,
+    var user: User,
 
-    @Column(name = "device_token")
+    @Column(name = "device_token", length = 512, unique = true)
     var deviceToken: String,
 
     @Column(name = "device_type", length = 20)
@@ -27,5 +27,23 @@ class UserDevice(
     var isFamilyReminderOn: Boolean = true,
 
     @Column(name = "is_missed_alert_on")
-    var isMissedAlertOn: Boolean = true
-) : BaseTimeEntity()
+    var isMissedAlertOn: Boolean = true,
+
+    @Column(name = "is_active")
+    var isActive: Boolean = true
+) : BaseTimeEntity() {
+    fun register(
+        user: User,
+        deviceType: String,
+    ) {
+        if (this.user.id != user.id) {
+            this.isMyReminderOn = true
+            this.isFamilyReminderOn = true
+            this.isMissedAlertOn = true
+        }
+
+        this.user = user
+        this.deviceType = deviceType
+        this.isActive = true
+    }
+}

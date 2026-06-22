@@ -1,5 +1,7 @@
 package com.safemedi.app.sefemedi.domain.user.controller
 
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
@@ -35,6 +37,17 @@ class UserController(
         @RequestBody request: TutorialRequest,
     ): TutorialResponse {
         return userService.completeTutorial(
+            authentication.name,
+            request,
+        )
+    }
+
+    @PostMapping("/device-token")
+    fun registerDeviceToken(
+        authentication: Authentication,
+        @RequestBody request: DeviceTokenRequest,
+    ): DeviceTokenResponse {
+        return userService.registerDeviceToken(
             authentication.name,
             request,
         )

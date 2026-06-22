@@ -5,6 +5,7 @@ import com.safemedi.app.sefemedi.domain.drug.repository.DiseaseMasterRepository
 import com.safemedi.app.sefemedi.domain.family.entity.Family
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
 import com.safemedi.app.sefemedi.domain.user.dto.AllergyResponse
+import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DiseaseResponse
 import com.safemedi.app.sefemedi.domain.user.dto.FamilyResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialAllergyRequest
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.anyList
 import org.mockito.Mockito.mock
@@ -419,5 +421,134 @@ class UserServiceTest {
         }
 
         assertEquals(ErrorCode.TUTORIAL_ALREADY_COMPLETED, exception.errorCode)
+    }
+
+    @Test
+    fun `registerDeviceToken creates a new device token`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val savedDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(null)
+        given(userDeviceRepository.save(any(UserDevice::class.java))).willReturn(savedDevice)
+
+        val response = userService.registerDeviceToken(
+            socialId = "4903042739",
+            request = DeviceTokenRequest(
+                deviceToken = "device-token",
+                deviceType = "ANDROID",
+            ),
+        )
+
+        assertEquals(10L, response.deviceId)
+    }
+
+    @Test
+    fun `registerDeviceToken transfers existing token to current user and activates it`() {
+        val currentUser = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val previousUser = User(
+            id = 2L,
+            socialId = "previous",
+        )
+        val existingDevice = UserDevice(
+            id = 10L,
+            user = previousUser,
+            deviceToken = "device-token",
+            deviceType = "IOS",
+            isActive = false,
+            isMyReminderOn = false,
+            isFamilyReminderOn = false,
+            isMissedAlertOn = false,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(currentUser)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(existingDevice)
+        given(userDeviceRepository.save(existingDevice)).willReturn(existingDevice)
+
+        val response = userService.registerDeviceToken(
+            socialId = "4903042739",
+            request = DeviceTokenRequest(
+                deviceToken = "device-token",
+                deviceType = "ANDROID",
+            ),
+        )
+
+        assertEquals(10L, response.deviceId)
+        assertEquals(currentUser, existingDevice.user)
+        assertEquals("ANDROID", existingDevice.deviceType)
+        assertEquals(true, existingDevice.isActive)
+        assertEquals(true, existingDevice.isMyReminderOn)
+        assertEquals(true, existingDevice.isFamilyReminderOn)
+        assertEquals(true, existingDevice.isMissedAlertOn)
+    }
+
+    @Test
+    fun `registerDeviceToken throws INVALID_REQUEST when token is blank`() {
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.registerDeviceToken(
+                socialId = "4903042739",
+                request = DeviceTokenRequest(
+                    deviceToken = " ",
+                    deviceType = "ANDROID",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.errorCode)
+    }
+
+    @Test
+    fun `registerDeviceToken throws DEVICE_TOKEN_TOO_LONG when token is too long`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.registerDeviceToken(
+                socialId = "4903042739",
+                request = DeviceTokenRequest(
+                    deviceToken = "a".repeat(513),
+                    deviceType = "ANDROID",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.DEVICE_TOKEN_TOO_LONG, exception.errorCode)
+    }
+
+    @Test
+    fun `registerDeviceToken throws UNSUPPORTED_DEVICE_TYPE when type is invalid`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.registerDeviceToken(
+                socialId = "4903042739",
+                request = DeviceTokenRequest(
+                    deviceToken = "device-token",
+                    deviceType = "WEB",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.UNSUPPORTED_DEVICE_TYPE, exception.errorCode)
     }
 }

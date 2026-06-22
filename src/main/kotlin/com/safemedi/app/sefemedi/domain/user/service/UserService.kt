@@ -226,7 +226,6 @@ class UserService(
         }
 
         userDevice.deactivate()
-        userDeviceRepository.save(userDevice)
 
         return DeviceTokenDeactivateResponse()
     }

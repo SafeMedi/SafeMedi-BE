@@ -569,7 +569,6 @@ class UserServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
-        given(userDeviceRepository.save(userDevice)).willReturn(userDevice)
 
         val response = userService.deactivateDeviceToken(
             socialId = "4903042739",
@@ -580,7 +579,6 @@ class UserServiceTest {
 
         assertEquals("기기 푸시 토큰이 성공적으로 해제되었습니다.", response.message)
         assertEquals(false, userDevice.isActive)
-        verify(userDeviceRepository).save(userDevice)
     }
 
     @Test
@@ -599,7 +597,6 @@ class UserServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
-        given(userDeviceRepository.save(userDevice)).willReturn(userDevice)
 
         val response = userService.deactivateDeviceToken(
             socialId = "4903042739",

@@ -96,6 +96,7 @@ class UserService(
         val settings = UserNotificationSettingsResponse(
             isMyReminderOn = latestDevice?.isMyReminderOn ?: true,
             isFamilyReminderOn = latestDevice?.isFamilyReminderOn ?: true,
+            isMissedAlertOn = latestDevice?.isMissedAlertOn ?: true,
         )
 
         return UserProfileResponse(
@@ -112,6 +113,23 @@ class UserService(
             allergies = allergies,
             families = families,
             settings = settings,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getNotificationSettings(
+        socialId: String,
+    ): UserNotificationSettingsResponse {
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val userId = user.id
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
+
+        return UserNotificationSettingsResponse(
+            isMyReminderOn = latestDevice?.isMyReminderOn ?: true,
+            isFamilyReminderOn = latestDevice?.isFamilyReminderOn ?: true,
+            isMissedAlertOn = latestDevice?.isMissedAlertOn ?: true,
         )
     }
 

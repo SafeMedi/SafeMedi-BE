@@ -61,6 +61,7 @@ class UserControllerTest {
             settings = UserNotificationSettingsResponse(
                 isMyReminderOn = true,
                 isFamilyReminderOn = true,
+                isMissedAlertOn = true,
             ),
         )
 
@@ -71,5 +72,23 @@ class UserControllerTest {
 
         assertEquals(response, result)
         verify(userService).getMyProfile("4903042739")
+    }
+
+    @Test
+    fun `getNotificationSettings passes authentication name to service`() {
+        val authentication = mock(Authentication::class.java)
+        val response = UserNotificationSettingsResponse(
+            isMyReminderOn = true,
+            isFamilyReminderOn = false,
+            isMissedAlertOn = true,
+        )
+
+        given(authentication.name).willReturn("4903042739")
+        given(userService.getNotificationSettings("4903042739")).willReturn(response)
+
+        val result = userController.getNotificationSettings(authentication)
+
+        assertEquals(response, result)
+        verify(userService).getNotificationSettings("4903042739")
     }
 }

@@ -35,4 +35,5 @@ data class FamilyResponse(
 data class UserNotificationSettingsResponse(
     val isMyReminderOn: Boolean,
     val isFamilyReminderOn: Boolean,
+    val isMissedAlertOn: Boolean,
 )

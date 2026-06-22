@@ -93,11 +93,7 @@ class UserService(
             }
 
         val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
-        val settings = UserNotificationSettingsResponse(
-            isMyReminderOn = latestDevice?.isMyReminderOn ?: true,
-            isFamilyReminderOn = latestDevice?.isFamilyReminderOn ?: true,
-            isMissedAlertOn = latestDevice?.isMissedAlertOn ?: true,
-        )
+        val settings = convertToNotificationSettings(latestDevice)
 
         return UserProfileResponse(
             nickname = user.nickname,
@@ -126,11 +122,7 @@ class UserService(
             ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
         val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
 
-        return UserNotificationSettingsResponse(
-            isMyReminderOn = latestDevice?.isMyReminderOn ?: true,
-            isFamilyReminderOn = latestDevice?.isFamilyReminderOn ?: true,
-            isMissedAlertOn = latestDevice?.isMissedAlertOn ?: true,
-        )
+        return convertToNotificationSettings(latestDevice)
     }
 
     @Transactional
@@ -262,6 +254,16 @@ class UserService(
         } catch (_: IllegalArgumentException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }
+    }
+
+    private fun convertToNotificationSettings(
+        latestDevice: UserDevice?,
+    ): UserNotificationSettingsResponse {
+        return UserNotificationSettingsResponse(
+            isMyReminderOn = latestDevice?.isMyReminderOn ?: true,
+            isFamilyReminderOn = latestDevice?.isFamilyReminderOn ?: true,
+            isMissedAlertOn = latestDevice?.isMissedAlertOn ?: true,
+        )
     }
 
     private fun validateDeviceToken(deviceToken: String?): String {

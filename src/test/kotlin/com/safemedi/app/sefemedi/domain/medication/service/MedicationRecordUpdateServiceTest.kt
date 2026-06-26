@@ -7,6 +7,10 @@ import com.safemedi.app.sefemedi.domain.medication.entity.Prescription
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrug
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrugTime
 import com.safemedi.app.sefemedi.domain.medication.repository.MedicationRecordRepository
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationTargetType
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
@@ -15,6 +19,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockingDetails
+import org.mockito.Mockito.verifyNoInteractions
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -26,6 +32,7 @@ import kotlin.test.assertNull
 class MedicationRecordUpdateServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var medicationRecordRepository: MedicationRecordRepository
+    private lateinit var notificationCreateService: NotificationCreateService
     private lateinit var service: MedicationRecordUpdateService
 
     private val user = User(
@@ -37,10 +44,12 @@ class MedicationRecordUpdateServiceTest {
     fun setUp() {
         userRepository = mock(UserRepository::class.java)
         medicationRecordRepository = mock(MedicationRecordRepository::class.java)
+        notificationCreateService = mock(NotificationCreateService::class.java)
 
         service = MedicationRecordUpdateService(
             userRepository = userRepository,
             medicationRecordRepository = medicationRecordRepository,
+            notificationCreateService = notificationCreateService,
         )
     }
 
@@ -65,6 +74,19 @@ class MedicationRecordUpdateServiceTest {
         assertNotNull(response.takenAt)
         assertEquals(MedicationStatus.SUCCESS, record.status)
         assertNotNull(record.takenAt)
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+        assertEquals(1L, command.userId)
+        assertEquals(NotificationType.MEDICATION_COMPLETED, command.type)
+        assertEquals("복약 완료", command.title)
+        assertEquals("Tylenol 복용을 완료했어요", command.content)
+        assertEquals(NotificationTargetType.MEDICATION_RECORD, command.targetType)
+        assertEquals(500L, command.targetId)
+        assertEquals("MEDICATION_COMPLETED:MEDICATION_RECORD:500:1", command.deduplicationKey)
+        assertNotNull(command.scheduledAt)
     }
 
     @Test
@@ -86,6 +108,7 @@ class MedicationRecordUpdateServiceTest {
         assertNull(response.takenAt)
         assertEquals(MedicationStatus.SKIP, record.status)
         assertNull(record.takenAt)
+        verifyNoInteractions(notificationCreateService)
     }
 
     @Test
@@ -150,6 +173,7 @@ class MedicationRecordUpdateServiceTest {
         assertNull(response.takenAt)
         assertEquals(MedicationStatus.PENDING, record.status)
         assertNull(record.takenAt)
+        verifyNoInteractions(notificationCreateService)
     }
 
     private fun medicationRecord(

@@ -124,6 +124,28 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         @Param("endAt") endAt: LocalDateTime,
     ): List<MedicationRecord>
 
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
+        join fetch mr.user u
+        join fetch mr.prescription p
+        join fetch mr.prescriptionDrugTime pdt
+        join fetch pdt.prescriptionDrug pd
+        where mr.status = :status
+          and mr.scheduledAt > :startAt
+          and mr.scheduledAt <= :endAt
+          and p.deletedAt is null
+          and pdt.deletedAt is null
+        order by mr.scheduledAt asc, mr.id asc
+        """
+    )
+    fun findPendingRecordsScheduledBetween(
+        @Param("status") status: MedicationStatus,
+        @Param("startAt") startAt: LocalDateTime,
+        @Param("endAt") endAt: LocalDateTime,
+    ): List<MedicationRecord>
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(
         """

@@ -17,6 +17,9 @@ import com.safemedi.app.sefemedi.domain.medication.dto.MedicationAnalyzeRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationSafetyStatus
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationWarningType
 import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionAnalyzeRequest
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
 import com.safemedi.app.sefemedi.domain.user.entity.AllergyType
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.entity.UserAllergy
@@ -29,6 +32,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockingDetails
+import org.mockito.Mockito.verifyNoInteractions
 import java.time.LocalDate
 import java.util.Optional
 import kotlin.test.assertEquals
@@ -45,6 +50,7 @@ class PrescriptionAnalyzeServiceTest {
     private lateinit var durAgeRepository: DurAgeRepository
     private lateinit var durPregnancyRepository: DurPregnancyRepository
     private lateinit var durInteractionRepository: DurInteractionRepository
+    private lateinit var notificationCreateService: NotificationCreateService
     private lateinit var service: PrescriptionAnalyzeService
 
     private val user = User(
@@ -63,6 +69,7 @@ class PrescriptionAnalyzeServiceTest {
         durAgeRepository = mock(DurAgeRepository::class.java)
         durPregnancyRepository = mock(DurPregnancyRepository::class.java)
         durInteractionRepository = mock(DurInteractionRepository::class.java)
+        notificationCreateService = mock(NotificationCreateService::class.java)
 
         service = PrescriptionAnalyzeService(
             userRepository = userRepository,
@@ -70,6 +77,7 @@ class PrescriptionAnalyzeServiceTest {
             userHealthProfileRepository = userHealthProfileRepository,
             drugIngredientMapRepository = drugIngredientMapRepository,
             drugMasterRepository = drugMasterRepository,
+            notificationCreateService = notificationCreateService,
             analyzers = listOf(
                 DurSafetyAnalyzerImpl(
                     durElderlyRepository = durElderlyRepository,
@@ -171,6 +179,17 @@ class PrescriptionAnalyzeServiceTest {
         assertEquals(MedicationSafetyStatus.DANGER, amlodipine.status)
         assertTrue(amlodipine.warnings.any { it.type == MedicationWarningType.ALLERGY })
         assertTrue(amlodipine.warnings.any { it.type == MedicationWarningType.DUR_INTERACTION })
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+
+        assertEquals(1L, command.userId)
+        assertEquals(NotificationType.DRUG_INTERACTION_WARNING, command.type)
+        assertEquals("약물 위험 경고", command.title)
+        assertEquals("Tylenol 500mg, Amlodipine 5mg 약물에 위험 경고가 있어요", command.content)
+        assertEquals("DRUG_RISK_WARNING:ANALYZE:1:D001,D002", command.deduplicationKey)
     }
 
     @Test
@@ -254,6 +273,7 @@ class PrescriptionAnalyzeServiceTest {
         assertEquals(1, response.safetySummary.safeCount)
         assertEquals("N02BE01", response.analyzedMedications.single().atcCode)
         assertEquals("Tylenol 500mg", response.analyzedMedications.single().drugName)
+        verifyNoInteractions(notificationCreateService)
     }
 
     @Test

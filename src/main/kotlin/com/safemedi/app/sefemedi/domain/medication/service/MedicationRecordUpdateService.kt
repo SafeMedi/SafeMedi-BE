@@ -5,6 +5,10 @@ import com.safemedi.app.sefemedi.domain.medication.dto.MedicationRecordUpdateRes
 import com.safemedi.app.sefemedi.domain.medication.entity.MedicationRecord
 import com.safemedi.app.sefemedi.domain.medication.entity.MedicationStatus
 import com.safemedi.app.sefemedi.domain.medication.repository.MedicationRecordRepository
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationTargetType
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
@@ -17,6 +21,7 @@ import java.time.ZoneId
 class MedicationRecordUpdateService(
     private val userRepository: UserRepository,
     private val medicationRecordRepository: MedicationRecordRepository,
+    private val notificationCreateService: NotificationCreateService,
 ) {
     @Transactional
     fun update(
@@ -49,6 +54,9 @@ class MedicationRecordUpdateService(
             status = request.status,
             takenAt = takenAt,
         )
+        if (request.status == MedicationStatus.SUCCESS) {
+            createMedicationCompletedNotification(record)
+        }
 
         return record.toResponse()
     }
@@ -66,6 +74,27 @@ class MedicationRecordUpdateService(
             scheduledAt = scheduledAt,
             takenAt = takenAt,
             status = status.name,
+        )
+    }
+
+    private fun createMedicationCompletedNotification(
+        record: MedicationRecord,
+    ) {
+        val recordId = record.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val userId = record.user.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val drugName = record.prescriptionDrugTime.prescriptionDrug.drugName
+
+        notificationCreateService.create(
+            NotificationCreateCommand(
+                userId = userId,
+                type = NotificationType.MEDICATION_COMPLETED,
+                title = "복약 완료",
+                content = "${drugName} 복용을 완료했어요",
+                targetType = NotificationTargetType.MEDICATION_RECORD,
+                targetId = recordId,
+                deduplicationKey = "MEDICATION_COMPLETED:MEDICATION_RECORD:$recordId:$userId",
+                scheduledAt = record.takenAt,
+            )
         )
     }
 

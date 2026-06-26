@@ -20,7 +20,7 @@ class DailySummaryService(
     fun create(now: LocalDateTime) {
         val records = medicationRecordRepository.findPendingRecordsScheduledBetween(
             status = MedicationStatus.PENDING,
-            startAt = now.minusNanos(1),
+            startAt = now.toLocalDate().atStartOfDay().minusNanos(1),
             endAt = now.toLocalDate().plusDays(1).atStartOfDay().minusNanos(1),
         )
 

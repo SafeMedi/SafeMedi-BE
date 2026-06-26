@@ -16,6 +16,7 @@ import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Service
 class NotificationCreateService(
@@ -24,6 +25,7 @@ class NotificationCreateService(
     private val notificationLogRepository: NotificationLogRepository,
     private val notificationOutboxRepository: NotificationOutboxRepository,
 ) {
+    private val serviceZoneId = ZoneId.of("Asia/Seoul")
 
     @Transactional
     fun create(
@@ -72,7 +74,7 @@ class NotificationCreateService(
                 notificationLog = notificationLog,
                 user = user,
                 eventKey = command.deduplicationKey.trim(),
-                scheduledAt = command.scheduledAt ?: LocalDateTime.now(),
+                scheduledAt = command.scheduledAt ?: LocalDateTime.now(serviceZoneId),
             )
         )
 

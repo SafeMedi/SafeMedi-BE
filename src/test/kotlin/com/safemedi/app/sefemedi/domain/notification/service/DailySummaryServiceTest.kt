@@ -61,7 +61,7 @@ class DailySummaryServiceTest {
         given(
             medicationRecordRepository.findPendingRecordsScheduledBetween(
                 status = MedicationStatus.PENDING,
-                startAt = now.minusNanos(1),
+                startAt = LocalDate.of(2026, 6, 27).atStartOfDay().minusNanos(1),
                 endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
             )
         ).willReturn(records)
@@ -89,7 +89,7 @@ class DailySummaryServiceTest {
         given(
             medicationRecordRepository.findPendingRecordsScheduledBetween(
                 status = MedicationStatus.PENDING,
-                startAt = now.minusNanos(1),
+                startAt = LocalDate.of(2026, 6, 27).atStartOfDay().minusNanos(1),
                 endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
             )
         ).willReturn(emptyList())
@@ -106,7 +106,7 @@ class DailySummaryServiceTest {
         given(
             medicationRecordRepository.findPendingRecordsScheduledBetween(
                 status = MedicationStatus.PENDING,
-                startAt = now.minusNanos(1),
+                startAt = LocalDate.of(2026, 6, 27).atStartOfDay().minusNanos(1),
                 endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
             )
         ).willReturn(emptyList())
@@ -115,7 +115,7 @@ class DailySummaryServiceTest {
 
         verify(medicationRecordRepository).findPendingRecordsScheduledBetween(
             status = MedicationStatus.PENDING,
-            startAt = now.minusNanos(1),
+            startAt = LocalDate.of(2026, 6, 27).atStartOfDay().minusNanos(1),
             endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
         )
     }

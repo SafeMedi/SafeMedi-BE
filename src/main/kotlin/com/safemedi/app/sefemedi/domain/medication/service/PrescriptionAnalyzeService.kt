@@ -18,6 +18,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserHealthProfileReposit
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.AnnotationAwareOrderComparator
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -34,6 +35,7 @@ class PrescriptionAnalyzeService(
 ) {
     private val sortedAnalyzers: List<PrescriptionAnalyzer> =
         analyzers.sortedWith(AnnotationAwareOrderComparator.INSTANCE)
+    private val log = LoggerFactory.getLogger(PrescriptionAnalyzeService::class.java)
 
     @Transactional
     fun analyze(
@@ -126,10 +128,12 @@ class PrescriptionAnalyzeService(
             .joinToString(", ")
         val normalizedDrugCodes = drugCodes
             .map { it.trim().uppercase() }
+            .distinct()
             .sorted()
             .joinToString(",")
 
-        notificationCreateService.create(
+        try {
+            notificationCreateService.create(
             NotificationCreateCommand(
                 userId = userId,
                 type = NotificationType.DRUG_INTERACTION_WARNING,
@@ -137,6 +141,14 @@ class PrescriptionAnalyzeService(
                 content = "${drugNames} 약물에 위험 경고가 있어요",
                 deduplicationKey = "DRUG_RISK_WARNING:ANALYZE:$userId:$normalizedDrugCodes",
             )
-        )
+            )
+        } catch (exception: RuntimeException) {
+            log.warn(
+                "Failed to create drug risk notification. userId={}, drugCodes={}",
+                userId,
+                normalizedDrugCodes,
+                exception,
+            )
+        }
     }
 }

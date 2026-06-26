@@ -22,97 +22,107 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-class MedicationReminderNotificationServiceTest {
+class DailySummaryServiceTest {
 
     private lateinit var medicationRecordRepository: MedicationRecordRepository
     private lateinit var notificationCreateService: NotificationCreateService
-    private lateinit var medicationReminderNotificationService: MedicationReminderNotificationService
-
-    private val user = User(
-        id = 1L,
-        socialId = "kakao-123",
-    )
+    private lateinit var dailySummaryService: DailySummaryService
 
     @BeforeEach
     fun setUp() {
         medicationRecordRepository = mock(MedicationRecordRepository::class.java)
         notificationCreateService = mock(NotificationCreateService::class.java)
-        medicationReminderNotificationService = MedicationReminderNotificationService(
+        dailySummaryService = DailySummaryService(
             medicationRecordRepository = medicationRecordRepository,
             notificationCreateService = notificationCreateService,
         )
     }
 
     @Test
-    fun `createDueReminders creates medication reminder notifications for due pending records`() {
-        val now = LocalDateTime.of(2026, 6, 27, 9, 0)
-        val record = medicationRecord(
-            scheduledAt = LocalDateTime.of(2026, 6, 27, 8, 58),
+    fun `create makes one daily summary per user`() {
+        val now = LocalDateTime.of(2026, 6, 27, 8, 0)
+        val user = User(
+            id = 1L,
+            socialId = "kakao-123",
+        )
+        val records = listOf(
+            medicationRecord(
+                id = 500L,
+                user = user,
+                scheduledAt = LocalDateTime.of(2026, 6, 27, 9, 0),
+            ),
+            medicationRecord(
+                id = 501L,
+                user = user,
+                scheduledAt = LocalDateTime.of(2026, 6, 27, 20, 0),
+            ),
         )
 
         given(
             medicationRecordRepository.findPendingRecordsScheduledBetween(
                 status = MedicationStatus.PENDING,
-                startAt = now.minusMinutes(5),
-                endAt = now,
+                startAt = now.minusNanos(1),
+                endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
             )
-        ).willReturn(listOf(record))
+        ).willReturn(records)
 
-        medicationReminderNotificationService.createDueReminders(now)
+        dailySummaryService.create(now)
 
         val command = mockingDetails(notificationCreateService)
             .invocations
             .single()
             .arguments[0] as NotificationCreateCommand
         assertEquals(1L, command.userId)
-        assertEquals(NotificationType.MEDICATION_REMINDER, command.type)
-        assertEquals("약 복용 시간입니다", command.title)
-        assertEquals("Tylenol을 복용할 시간이에요", command.content)
+        assertEquals(NotificationType.TODAY_MEDICATION_SCHEDULE, command.type)
+        assertEquals("오늘의 복약 스케줄", command.title)
+        assertEquals("오늘 복용할 약이 2개 남았어요", command.content)
         assertEquals(NotificationTargetType.MEDICATION_RECORD, command.targetType)
         assertEquals(500L, command.targetId)
-        assertEquals("MEDICATION_REMINDER:MEDICATION_RECORD:500:1", command.deduplicationKey)
-        assertEquals(record.scheduledAt, command.scheduledAt)
+        assertEquals("TODAY_MEDICATION_SCHEDULE:2026-06-27:1", command.deduplicationKey)
+        assertEquals(now, command.scheduledAt)
     }
 
     @Test
-    fun `createDueReminders does not create notifications when there are no due records`() {
-        val now = LocalDateTime.of(2026, 6, 27, 9, 0)
+    fun `create does nothing when there are no pending records`() {
+        val now = LocalDateTime.of(2026, 6, 27, 8, 0)
 
         given(
             medicationRecordRepository.findPendingRecordsScheduledBetween(
                 status = MedicationStatus.PENDING,
-                startAt = now.minusMinutes(5),
-                endAt = now,
+                startAt = now.minusNanos(1),
+                endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
             )
         ).willReturn(emptyList())
 
-        medicationReminderNotificationService.createDueReminders(now)
+        dailySummaryService.create(now)
 
         verifyNoInteractions(notificationCreateService)
     }
 
     @Test
-    fun `createDueReminders queries the previous five minute window`() {
-        val now = LocalDateTime.of(2026, 6, 27, 9, 0)
+    fun `create queries from now to end of day`() {
+        val now = LocalDateTime.of(2026, 6, 27, 8, 0)
 
         given(
             medicationRecordRepository.findPendingRecordsScheduledBetween(
                 status = MedicationStatus.PENDING,
-                startAt = now.minusMinutes(5),
-                endAt = now,
+                startAt = now.minusNanos(1),
+                endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
             )
         ).willReturn(emptyList())
 
-        medicationReminderNotificationService.createDueReminders(now)
+        dailySummaryService.create(now)
 
         verify(medicationRecordRepository).findPendingRecordsScheduledBetween(
             status = MedicationStatus.PENDING,
-            startAt = now.minusMinutes(5),
-            endAt = now,
+            startAt = now.minusNanos(1),
+            endAt = LocalDate.of(2026, 6, 28).atStartOfDay().minusNanos(1),
         )
     }
 
     private fun medicationRecord(
+        id: Long,
+        user: User,
         scheduledAt: LocalDateTime,
     ): MedicationRecord {
         val prescription = Prescription(
@@ -134,7 +144,7 @@ class MedicationReminderNotificationServiceTest {
         )
 
         return MedicationRecord(
-            id = 500L,
+            id = id,
             user = user,
             prescription = prescription,
             prescriptionDrugTime = prescriptionDrugTime,

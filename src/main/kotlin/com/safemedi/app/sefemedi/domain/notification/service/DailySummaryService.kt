@@ -11,35 +11,35 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
-class MedicationReminderNotificationService(
+class DailySummaryService(
     private val medicationRecordRepository: MedicationRecordRepository,
     private val notificationCreateService: NotificationCreateService,
 ) {
 
     @Transactional
-    fun createDueReminders(
-        now: LocalDateTime,
-    ) {
+    fun create(now: LocalDateTime) {
         val records = medicationRecordRepository.findPendingRecordsScheduledBetween(
             status = MedicationStatus.PENDING,
-            startAt = now.minusMinutes(REMINDER_LOOKBACK_MINUTES),
-            endAt = now,
+            startAt = now.minusNanos(1),
+            endAt = now.toLocalDate().plusDays(1).atStartOfDay().minusNanos(1),
         )
 
-        records.forEach { record ->
-            notificationCreateService.create(
-                NotificationCreateCommand(
-                    userId = record.requireUserId(),
-                    type = NotificationType.MEDICATION_REMINDER,
-                    title = "약 복용 시간입니다",
-                    content = "${record.drugName()}을 복용할 시간이에요",
-                    targetType = NotificationTargetType.MEDICATION_RECORD,
-                    targetId = record.requireRecordId(),
-                    deduplicationKey = "MEDICATION_REMINDER:MEDICATION_RECORD:${record.requireRecordId()}:${record.requireUserId()}",
-                    scheduledAt = record.scheduledAt,
+        records.groupBy { it.requireUserId() }
+            .forEach { (userId, userRecords) ->
+                val firstRecord = userRecords.minBy { it.scheduledAt }
+                notificationCreateService.create(
+                    NotificationCreateCommand(
+                        userId = userId,
+                        type = NotificationType.TODAY_MEDICATION_SCHEDULE,
+                        title = "오늘의 복약 스케줄",
+                        content = "오늘 복용할 약이 ${userRecords.size}개 남았어요",
+                        targetType = NotificationTargetType.MEDICATION_RECORD,
+                        targetId = firstRecord.requireRecordId(),
+                        deduplicationKey = "TODAY_MEDICATION_SCHEDULE:${now.toLocalDate()}:$userId",
+                        scheduledAt = now,
+                    )
                 )
-            )
-        }
+            }
     }
 
     private fun MedicationRecord.requireRecordId(): Long {
@@ -48,13 +48,5 @@ class MedicationReminderNotificationService(
 
     private fun MedicationRecord.requireUserId(): Long {
         return requireNotNull(user.id)
-    }
-
-    private fun MedicationRecord.drugName(): String {
-        return prescriptionDrugTime.prescriptionDrug.drugName
-    }
-
-    private companion object {
-        const val REMINDER_LOOKBACK_MINUTES = 5L
     }
 }

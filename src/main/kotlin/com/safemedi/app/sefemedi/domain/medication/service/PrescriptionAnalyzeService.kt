@@ -10,6 +10,9 @@ import com.safemedi.app.sefemedi.domain.medication.dto.MedicationSafetyStatus
 import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionAnalyzeRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.PrescriptionAnalyzeResponse
 import com.safemedi.app.sefemedi.domain.medication.dto.SafetySummaryResponse
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
 import com.safemedi.app.sefemedi.domain.user.repository.UserAllergyRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserHealthProfileRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
@@ -26,12 +29,13 @@ class PrescriptionAnalyzeService(
     private val userHealthProfileRepository: UserHealthProfileRepository,
     private val drugIngredientMapRepository: DrugIngredientMapRepository,
     private val drugMasterRepository: DrugMasterRepository,
+    private val notificationCreateService: NotificationCreateService,
     analyzers: List<PrescriptionAnalyzer>,
 ) {
     private val sortedAnalyzers: List<PrescriptionAnalyzer> =
         analyzers.sortedWith(AnnotationAwareOrderComparator.INSTANCE)
 
-    @Transactional(readOnly = true)
+    @Transactional
     fun analyze(
         socialId: String,
         request: PrescriptionAnalyzeRequest,
@@ -72,7 +76,14 @@ class PrescriptionAnalyzeService(
 
         sortedAnalyzers.forEach { it.analyze(context) }
 
-        return context.toResponse()
+        val response = context.toResponse()
+        createDrugRiskWarningIfNeeded(
+            userId = userId,
+            drugCodes = drugCodes,
+            response = response,
+        )
+
+        return response
     }
 
     private fun PrescriptionContext.toResponse(): PrescriptionAnalyzeResponse {
@@ -94,6 +105,38 @@ class PrescriptionAnalyzeService(
                 dangerCount = analyzedResponses.count { it.status == MedicationSafetyStatus.DANGER },
             ),
             analyzedMedications = analyzedResponses,
+        )
+    }
+
+    private fun createDrugRiskWarningIfNeeded(
+        userId: Long,
+        drugCodes: List<String>,
+        response: PrescriptionAnalyzeResponse,
+    ) {
+        val dangerMedications = response.analyzedMedications.filter {
+            it.status == MedicationSafetyStatus.DANGER
+        }
+        if (dangerMedications.isEmpty()) {
+            return
+        }
+
+        val drugNames = dangerMedications
+            .map { it.drugName }
+            .distinct()
+            .joinToString(", ")
+        val normalizedDrugCodes = drugCodes
+            .map { it.trim().uppercase() }
+            .sorted()
+            .joinToString(",")
+
+        notificationCreateService.create(
+            NotificationCreateCommand(
+                userId = userId,
+                type = NotificationType.DRUG_INTERACTION_WARNING,
+                title = "약물 위험 경고",
+                content = "${drugNames} 약물에 위험 경고가 있어요",
+                deduplicationKey = "DRUG_RISK_WARNING:ANALYZE:$userId:$normalizedDrugCodes",
+            )
         )
     }
 }

@@ -11,7 +11,7 @@ interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
         deduplicationKey: String,
     ): NotificationLog?
 
-    fun findByUser_IdOrderByCreatedAtDescIdDesc(
+    fun findByUserId(
         userId: Long,
         pageable: Pageable,
     ): Slice<NotificationLog>

@@ -7,6 +7,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -26,10 +27,10 @@ class NotificationQueryService(
 
         val user = userRepository.findBySocialId(socialId)
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
-        val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
-        val notifications = notificationLogRepository.findByUser_IdOrderByCreatedAtDescIdDesc(
+        val userId = user.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val notifications = notificationLogRepository.findByUserId(
             userId = userId,
-            pageable = PageRequest.of(page, size),
+            pageable = PageRequest.of(page, size, NOTIFICATION_SORT),
         )
 
         return NotificationListResponse(
@@ -62,5 +63,6 @@ class NotificationQueryService(
 
     companion object {
         private const val MAX_PAGE_SIZE = 100
+        private val NOTIFICATION_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id")
     }
 }

@@ -14,6 +14,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.SliceImpl
+import org.springframework.data.domain.Sort
 import org.springframework.test.util.ReflectionTestUtils
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
@@ -60,9 +61,9 @@ class NotificationQueryServiceTest {
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
         given(
-            notificationLogRepository.findByUser_IdOrderByCreatedAtDescIdDesc(
+            notificationLogRepository.findByUserId(
                 userId = 1L,
-                pageable = PageRequest.of(0, 10),
+                pageable = PageRequest.of(0, 10, NOTIFICATION_SORT),
             )
         ).willReturn(SliceImpl(listOf(notification), PageRequest.of(0, 10), false))
 
@@ -92,9 +93,9 @@ class NotificationQueryServiceTest {
     fun `findNotifications returns empty list`() {
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
         given(
-            notificationLogRepository.findByUser_IdOrderByCreatedAtDescIdDesc(
+            notificationLogRepository.findByUserId(
                 userId = 1L,
-                pageable = PageRequest.of(0, 20),
+                pageable = PageRequest.of(0, 20, NOTIFICATION_SORT),
             )
         ).willReturn(SliceImpl(emptyList(), PageRequest.of(0, 20), false))
 
@@ -132,5 +133,9 @@ class NotificationQueryServiceTest {
         }
 
         assertEquals(ErrorCode.INVALID_PAGE_REQUEST, exception.errorCode)
+    }
+
+    companion object {
+        private val NOTIFICATION_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id")
     }
 }

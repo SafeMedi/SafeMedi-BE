@@ -47,4 +47,9 @@ class NotificationLog(
 
     @Column(name = "is_read")
     var isRead: Boolean = false
-) : BaseTimeEntity()
+) : BaseTimeEntity() {
+
+    fun markAsRead() {
+        isRead = true
+    }
+}

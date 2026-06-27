@@ -47,6 +47,16 @@ enum class ErrorCode(
         "NOTI_002",
         "존재하지 않는 기기 토큰입니다.",
     ),
+    NOTIFICATION_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "NOTI_003",
+        "존재하지 않는 알림입니다.",
+    ),
+    NOTIFICATION_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "NOTI_004",
+        "해당 알림에 접근할 권한이 없습니다.",
+    ),
     TUTORIAL_ALREADY_COMPLETED(
         HttpStatus.BAD_REQUEST,
         "TUT_001",

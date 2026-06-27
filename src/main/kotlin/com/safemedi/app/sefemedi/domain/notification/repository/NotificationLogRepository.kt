@@ -23,7 +23,7 @@ interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
         userId: Long,
     ): Long
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(
         """
         update NotificationLog n

@@ -2,6 +2,7 @@ package com.safemedi.app.sefemedi.domain.notification.service
 
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationListResponse
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationSummaryResponse
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationUnreadCountResponse
 import com.safemedi.app.sefemedi.domain.notification.repository.NotificationLogRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
@@ -49,6 +50,19 @@ class NotificationQueryService(
             page = page,
             size = size,
             isLast = notifications.isLast,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun countUnreadNotifications(
+        socialId: String,
+    ): NotificationUnreadCountResponse {
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        val userId = user.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+
+        return NotificationUnreadCountResponse(
+            unreadCount = notificationLogRepository.countByUserIdAndIsReadFalse(userId),
         )
     }
 

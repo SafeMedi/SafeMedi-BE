@@ -15,4 +15,8 @@ interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
         userId: Long,
         pageable: Pageable,
     ): Slice<NotificationLog>
+
+    fun countByUserIdAndIsReadFalse(
+        userId: Long,
+    ): Long
 }

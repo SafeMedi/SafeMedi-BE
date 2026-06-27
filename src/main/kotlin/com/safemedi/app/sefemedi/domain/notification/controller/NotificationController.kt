@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.domain.notification.controller
 
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationListResponse
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationUnreadCountResponse
 import com.safemedi.app.sefemedi.domain.notification.service.NotificationQueryService
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
@@ -26,6 +27,15 @@ class NotificationController(
             socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
             page = page,
             size = size,
+        )
+    }
+
+    @GetMapping("/unread-count")
+    fun countUnreadNotifications(
+        @AuthenticationPrincipal socialId: String?,
+    ): NotificationUnreadCountResponse {
+        return notificationQueryService.countUnreadNotifications(
+            socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
         )
     }
 }

@@ -135,6 +135,30 @@ class NotificationQueryServiceTest {
         assertEquals(ErrorCode.INVALID_PAGE_REQUEST, exception.errorCode)
     }
 
+    @Test
+    fun `countUnreadNotifications returns unread count`() {
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(notificationLogRepository.countByUserIdAndIsReadFalse(1L)).willReturn(3L)
+
+        val response = notificationQueryService.countUnreadNotifications(
+            socialId = "kakao-123",
+        )
+
+        assertEquals(3L, response.unreadCount)
+    }
+
+    @Test
+    fun `countUnreadNotifications returns zero`() {
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(notificationLogRepository.countByUserIdAndIsReadFalse(1L)).willReturn(0L)
+
+        val response = notificationQueryService.countUnreadNotifications(
+            socialId = "kakao-123",
+        )
+
+        assertEquals(0L, response.unreadCount)
+    }
+
     companion object {
         private val NOTIFICATION_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id")
     }

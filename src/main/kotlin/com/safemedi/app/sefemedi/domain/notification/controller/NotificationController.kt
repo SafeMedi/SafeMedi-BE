@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.domain.notification.controller
 
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationListResponse
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationReadAllResponse
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationReadResponse
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationUnreadCountResponse
 import com.safemedi.app.sefemedi.domain.notification.service.NotificationQueryService
@@ -52,6 +53,15 @@ class NotificationController(
         return notificationReadService.markAsRead(
             socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
             notificationId = notificationId,
+        )
+    }
+
+    @PatchMapping("/read-all")
+    fun markAllNotificationsAsRead(
+        @AuthenticationPrincipal socialId: String?,
+    ): NotificationReadAllResponse {
+        return notificationReadService.markAllAsRead(
+            socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
         )
     }
 }

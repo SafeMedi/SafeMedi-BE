@@ -118,6 +118,43 @@ class NotificationReadServiceTest {
         assertEquals(false, notification.isRead)
     }
 
+    @Test
+    fun `markAllAsRead returns updated count`() {
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(notificationLogRepository.markAllAsReadByUserId(1L)).willReturn(5)
+
+        val response = notificationReadService.markAllAsRead(
+            socialId = "kakao-123",
+        )
+
+        assertEquals(5, response.updatedCount)
+    }
+
+    @Test
+    fun `markAllAsRead returns zero when there are no unread notifications`() {
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(notificationLogRepository.markAllAsReadByUserId(1L)).willReturn(0)
+
+        val response = notificationReadService.markAllAsRead(
+            socialId = "kakao-123",
+        )
+
+        assertEquals(0, response.updatedCount)
+    }
+
+    @Test
+    fun `markAllAsRead throws when user not found`() {
+        given(userRepository.findBySocialId("invalid-social-id")).willReturn(null)
+
+        val exception = assertFailsWith<BusinessException> {
+            notificationReadService.markAllAsRead(
+                socialId = "invalid-social-id",
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+
     private fun notificationLog(
         id: Long,
         user: User,

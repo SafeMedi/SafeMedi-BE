@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.domain.notification.service
 
 import com.safemedi.app.sefemedi.domain.notification.dto.NotificationReadResponse
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationReadAllResponse
 import com.safemedi.app.sefemedi.domain.notification.repository.NotificationLogRepository
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
@@ -36,6 +37,19 @@ class NotificationReadService(
         return NotificationReadResponse(
             notificationId = notification.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
             isRead = notification.isRead,
+        )
+    }
+
+    @Transactional
+    fun markAllAsRead(
+        socialId: String,
+    ): NotificationReadAllResponse {
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        val userId = user.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+
+        return NotificationReadAllResponse(
+            updatedCount = notificationLogRepository.markAllAsReadByUserId(userId),
         )
     }
 }

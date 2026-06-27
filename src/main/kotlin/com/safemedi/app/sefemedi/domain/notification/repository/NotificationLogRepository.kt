@@ -4,6 +4,9 @@ import com.safemedi.app.sefemedi.domain.notification.entity.NotificationLog
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
 
@@ -19,4 +22,17 @@ interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
     fun countByUserIdAndIsReadFalse(
         userId: Long,
     ): Long
+
+    @Modifying(clearAutomatically = true)
+    @Query(
+        """
+        update NotificationLog n
+        set n.isRead = true
+        where n.user.id = :userId
+          and n.isRead = false
+        """
+    )
+    fun markAllAsReadByUserId(
+        @Param("userId") userId: Long,
+    ): Int
 }

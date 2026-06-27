@@ -54,7 +54,6 @@ class NotificationReadServiceTest {
 
         assertEquals(105L, response.notificationId)
         assertEquals(true, response.isRead)
-        assertEquals("해당 알림이 읽음 처리되었습니다.", response.message)
         assertEquals(true, notification.isRead)
     }
 

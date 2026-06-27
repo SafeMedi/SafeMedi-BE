@@ -36,7 +36,6 @@ class NotificationReadService(
         return NotificationReadResponse(
             notificationId = notification.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
             isRead = notification.isRead,
-            message = "해당 알림이 읽음 처리되었습니다.",
         )
     }
 }

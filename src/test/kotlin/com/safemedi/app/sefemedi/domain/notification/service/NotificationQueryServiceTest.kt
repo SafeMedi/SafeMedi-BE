@@ -159,6 +159,19 @@ class NotificationQueryServiceTest {
         assertEquals(0L, response.unreadCount)
     }
 
+    @Test
+    fun `countUnreadNotifications throws when user not found`() {
+        given(userRepository.findBySocialId("invalid-social-id")).willReturn(null)
+
+        val exception = assertFailsWith<BusinessException> {
+            notificationQueryService.countUnreadNotifications(
+                socialId = "invalid-social-id",
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+
     companion object {
         private val NOTIFICATION_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id")
     }

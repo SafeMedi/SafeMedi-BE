@@ -37,6 +37,9 @@ dependencies {
 	// Monitoring
 	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
+	// Firebase
+	implementation("com.google.firebase:firebase-admin:9.9.0")
+
 	// JWT
 	implementation("io.jsonwebtoken:jjwt-api:0.12.7")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.7")

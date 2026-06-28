@@ -26,6 +26,17 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+app:
+  test-login:
+    enabled: false
+
+firebase:
+  enabled: ${FIREBASE_ENABLED:false}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  outbox:
+    batch-size: ${FCM_OUTBOX_BATCH_SIZE:50}
+    fixed-delay-ms: ${FCM_OUTBOX_FIXED_DELAY_MS:60000}
+
 management:
   endpoints:
     web:

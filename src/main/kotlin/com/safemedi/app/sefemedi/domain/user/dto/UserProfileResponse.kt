@@ -37,3 +37,9 @@ data class UserNotificationSettingsResponse(
     val isFamilyReminderOn: Boolean,
     val isMissedAlertOn: Boolean,
 )
+
+data class UserNotificationSettingsUpdateRequest(
+    val isMyReminderOn: Boolean? = null,
+    val isFamilyReminderOn: Boolean? = null,
+    val isMissedAlertOn: Boolean? = null,
+)

@@ -350,7 +350,7 @@ class UserServiceTest {
         )
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
-        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(userDevice)
+        given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(userDevice)
 
         val response = userService.updateNotificationSettings(
             socialId = "4903042739",
@@ -391,7 +391,7 @@ class UserServiceTest {
         )
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
-        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(userDevice)
+        given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(userDevice)
 
         val response = userService.updateNotificationSettings(
             socialId = "4903042739",
@@ -414,6 +414,61 @@ class UserServiceTest {
     }
 
     @Test
+    fun `updateNotificationSettings updates latest active device only`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val inactiveDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "inactive-device-token",
+            deviceType = "ANDROID",
+            isMyReminderOn = true,
+            isFamilyReminderOn = true,
+            isMissedAlertOn = true,
+            isActive = false,
+        )
+        val activeDevice = UserDevice(
+            id = 11L,
+            user = user,
+            deviceToken = "active-device-token",
+            deviceType = "IOS",
+            isMyReminderOn = true,
+            isFamilyReminderOn = true,
+            isMissedAlertOn = true,
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(activeDevice)
+
+        val response = userService.updateNotificationSettings(
+            socialId = "4903042739",
+            request = UserNotificationSettingsUpdateRequest(
+                isMyReminderOn = false,
+                isFamilyReminderOn = false,
+                isMissedAlertOn = false,
+            ),
+        )
+
+        assertEquals(false, activeDevice.isMyReminderOn)
+        assertEquals(false, activeDevice.isFamilyReminderOn)
+        assertEquals(false, activeDevice.isMissedAlertOn)
+        assertEquals(true, inactiveDevice.isMyReminderOn)
+        assertEquals(true, inactiveDevice.isFamilyReminderOn)
+        assertEquals(true, inactiveDevice.isMissedAlertOn)
+        assertEquals(
+            UserNotificationSettingsResponse(
+                isMyReminderOn = false,
+                isFamilyReminderOn = false,
+                isMissedAlertOn = false,
+            ),
+            response,
+        )
+    }
+
+    @Test
     fun `updateNotificationSettings throws DEVICE_TOKEN_NOT_FOUND when there is no device record`() {
         val user = User(
             id = 1L,
@@ -421,7 +476,7 @@ class UserServiceTest {
         )
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
-        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(null)
+        given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(null)
 
         val exception = assertThrows(BusinessException::class.java) {
             userService.updateNotificationSettings(

@@ -135,7 +135,7 @@ class UserService(
             ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
         val userId = user.id
             ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
-        val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
+        val latestDevice = userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(userId)
             ?: throw BusinessException(ErrorCode.DEVICE_TOKEN_NOT_FOUND)
 
         latestDevice.updateNotificationSettings(

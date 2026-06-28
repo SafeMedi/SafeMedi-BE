@@ -7,12 +7,14 @@ import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -41,6 +43,17 @@ class UserController(
     ): UserNotificationSettingsResponse {
         return userService.getNotificationSettings(
             authentication.name,
+        )
+    }
+
+    @PatchMapping("/notification-settings")
+    fun updateNotificationSettings(
+        authentication: Authentication,
+        @RequestBody request: UserNotificationSettingsUpdateRequest,
+    ): UserNotificationSettingsResponse {
+        return userService.updateNotificationSettings(
+            authentication.name,
+            request,
         )
     }
 

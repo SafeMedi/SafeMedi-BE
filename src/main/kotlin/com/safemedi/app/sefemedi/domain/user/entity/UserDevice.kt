@@ -50,4 +50,14 @@ class UserDevice(
     fun deactivate() {
         this.isActive = false
     }
+
+    fun updateNotificationSettings(
+        isMyReminderOn: Boolean?,
+        isFamilyReminderOn: Boolean?,
+        isMissedAlertOn: Boolean?,
+    ) {
+        isMyReminderOn?.let { this.isMyReminderOn = it }
+        isFamilyReminderOn?.let { this.isFamilyReminderOn = it }
+        isMissedAlertOn?.let { this.isMissedAlertOn = it }
+    }
 }

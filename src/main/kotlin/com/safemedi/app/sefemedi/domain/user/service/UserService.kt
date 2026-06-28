@@ -12,6 +12,7 @@ import com.safemedi.app.sefemedi.domain.user.dto.FamilyResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.entity.AllergyType
 import com.safemedi.app.sefemedi.domain.user.entity.BloodType
@@ -121,6 +122,27 @@ class UserService(
         val userId = user.id
             ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
         val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
+
+        return convertToNotificationSettings(latestDevice)
+    }
+
+    @Transactional
+    fun updateNotificationSettings(
+        socialId: String,
+        request: UserNotificationSettingsUpdateRequest,
+    ): UserNotificationSettingsResponse {
+        val user = userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val userId = user.id
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val latestDevice = userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
+            ?: throw BusinessException(ErrorCode.DEVICE_TOKEN_NOT_FOUND)
+
+        latestDevice.updateNotificationSettings(
+            isMyReminderOn = request.isMyReminderOn,
+            isFamilyReminderOn = request.isFamilyReminderOn,
+            isMissedAlertOn = request.isMissedAlertOn,
+        )
 
         return convertToNotificationSettings(latestDevice)
     }

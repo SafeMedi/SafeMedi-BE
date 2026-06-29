@@ -11,7 +11,7 @@ import java.time.LocalDate
 class UserHealthProfile(
     @Id
     @Column(name = "user_id")
-    val userId: Long,
+    var userId: Long? = null,
 
     @MapsId
     @OneToOne(fetch = FetchType.LAZY)

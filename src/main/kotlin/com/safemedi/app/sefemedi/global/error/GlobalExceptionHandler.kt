@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.global.error
 
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -20,6 +21,15 @@ class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException::class)
     fun handleMissingRequestParameter(
         exception: MissingServletRequestParameterException
+    ): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.INVALID_REQUEST
+        return ResponseEntity.status(errorCode.status)
+            .body(ErrorResponse(errorCode.code, errorCode.message))
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadable(
+        exception: HttpMessageNotReadableException
     ): ResponseEntity<ErrorResponse> {
         val errorCode = ErrorCode.INVALID_REQUEST
         return ResponseEntity.status(errorCode.status)

@@ -164,7 +164,6 @@ class UserService(
 
         val profile = userHealthProfileRepository.findByIdOrNull(userId)
             ?: UserHealthProfile(
-                userId = userId,
                 user = user,
             )
 

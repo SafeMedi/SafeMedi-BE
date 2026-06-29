@@ -6,6 +6,7 @@ import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenRequest
 import com.safemedi.app.sefemedi.domain.user.dto.DeviceTokenResponse
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserProfileUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
@@ -34,6 +35,17 @@ class UserController(
     ): UserProfileResponse {
         return userService.getMyProfile(
             authentication.name,
+        )
+    }
+
+    @PatchMapping("/me")
+    fun updateMyProfile(
+        authentication: Authentication,
+        @RequestBody request: UserProfileUpdateRequest,
+    ): UserProfileResponse {
+        return userService.updateMyProfile(
+            authentication.name,
+            request,
         )
     }
 

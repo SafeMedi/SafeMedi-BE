@@ -17,5 +17,5 @@ enum class RhType {
 }
 
 enum class AllergyType {
-    ATC_GROUP, INGREDIENT, FOOD
+    ATC_GROUP, INGREDIENT, CUSTOM, FOOD
 }

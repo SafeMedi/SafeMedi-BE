@@ -16,7 +16,6 @@ import com.safemedi.app.sefemedi.domain.user.entity.Gender
 import com.safemedi.app.sefemedi.domain.user.entity.RhType
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.entity.UserAllergy
-import com.safemedi.app.sefemedi.domain.user.entity.UserDevice
 import com.safemedi.app.sefemedi.domain.user.entity.UserDiseaseMap
 import com.safemedi.app.sefemedi.domain.user.entity.UserHealthProfile
 import com.safemedi.app.sefemedi.domain.user.repository.UserAllergyRepository
@@ -32,7 +31,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.anyList
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import java.time.LocalDate

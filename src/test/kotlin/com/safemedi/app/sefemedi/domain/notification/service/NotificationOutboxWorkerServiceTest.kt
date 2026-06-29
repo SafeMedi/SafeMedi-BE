@@ -18,7 +18,13 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.springframework.data.domain.PageRequest
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.SimpleTransactionStatus
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
+import java.util.Optional
 import kotlin.test.assertEquals
 
 class NotificationOutboxWorkerServiceTest {
@@ -42,6 +48,7 @@ class NotificationOutboxWorkerServiceTest {
             notificationOutboxRepository = notificationOutboxRepository,
             userDeviceRepository = userDeviceRepository,
             notificationPushSender = notificationPushSender,
+            transactionTemplate = TransactionTemplate(NoOpTransactionManager()),
         )
     }
 
@@ -53,6 +60,7 @@ class NotificationOutboxWorkerServiceTest {
 
         givenDueOutboxes(now, listOf(outbox))
         given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(userDevice)
+        given(notificationOutboxRepository.findById(10L)).willReturn(Optional.of(outbox))
         notificationPushSender.result = NotificationPushResult(NotificationPushStatus.SUCCESS)
 
         val processedCount = notificationOutboxWorkerService.processDueOutboxes(now, batchSize = 50)
@@ -78,6 +86,8 @@ class NotificationOutboxWorkerServiceTest {
 
         givenDueOutboxes(now, listOf(outbox))
         given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(userDevice)
+        given(notificationOutboxRepository.findById(10L)).willReturn(Optional.of(outbox))
+        given(userDeviceRepository.findById(20L)).willReturn(Optional.of(userDevice))
         notificationPushSender.result = NotificationPushResult(NotificationPushStatus.INVALID_TOKEN, "UNREGISTERED")
 
         notificationOutboxWorkerService.processDueOutboxes(now, batchSize = 50)
@@ -94,6 +104,7 @@ class NotificationOutboxWorkerServiceTest {
 
         givenDueOutboxes(now, listOf(outbox))
         given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(userDevice)
+        given(notificationOutboxRepository.findById(10L)).willReturn(Optional.of(outbox))
         notificationPushSender.result = NotificationPushResult(NotificationPushStatus.TEMPORARY_FAILURE, "UNAVAILABLE")
 
         notificationOutboxWorkerService.processDueOutboxes(now, batchSize = 50)
@@ -170,5 +181,21 @@ class NotificationOutboxWorkerServiceTest {
             requests.add(request)
             return result
         }
+    }
+
+    private class NoOpTransactionManager : PlatformTransactionManager {
+        override fun getTransaction(
+            definition: TransactionDefinition?,
+        ): TransactionStatus {
+            return SimpleTransactionStatus()
+        }
+
+        override fun commit(
+            status: TransactionStatus,
+        ) = Unit
+
+        override fun rollback(
+            status: TransactionStatus,
+        ) = Unit
     }
 }

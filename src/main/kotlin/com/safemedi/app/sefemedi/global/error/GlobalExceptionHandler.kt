@@ -1,6 +1,8 @@
 package com.safemedi.app.sefemedi.global.error
 
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -21,6 +23,26 @@ class GlobalExceptionHandler {
     fun handleMissingRequestParameter(
         exception: MissingServletRequestParameterException
     ): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.INVALID_REQUEST
+        return ResponseEntity.status(errorCode.status)
+            .body(ErrorResponse(errorCode.code, errorCode.message))
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadable(
+        exception: HttpMessageNotReadableException
+    ): ResponseEntity<ErrorResponse> {
+        log.warn("Failed to read HTTP message: {}", exception.message)
+        val errorCode = ErrorCode.INVALID_REQUEST
+        return ResponseEntity.status(errorCode.status)
+            .body(ErrorResponse(errorCode.code, errorCode.message))
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleMethodArgumentNotValid(
+        exception: MethodArgumentNotValidException
+    ): ResponseEntity<ErrorResponse> {
+        log.warn("Failed to validate request body: {}", exception.message)
         val errorCode = ErrorCode.INVALID_REQUEST
         return ResponseEntity.status(errorCode.status)
             .body(ErrorResponse(errorCode.code, errorCode.message))

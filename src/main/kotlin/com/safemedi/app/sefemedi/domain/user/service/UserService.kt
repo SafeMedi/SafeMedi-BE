@@ -150,35 +150,46 @@ class UserService(
         userId: Long,
         diseaseCodes: List<String>,
     ) {
-        val normalizedDiseaseCodes = normalizeDiseaseCodes(diseaseCodes)
-        if (normalizedDiseaseCodes.isEmpty()) {
-            val existingDiseaseMaps = userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
-            if (existingDiseaseMaps.isNotEmpty()) {
-                userDiseaseMapRepository.deleteAll(existingDiseaseMaps)
-            }
-            return
-        }
+        val requestedDiseaseCodes = normalizeDiseaseCodes(diseaseCodes)
 
-        val diseasesByCode = diseaseMasterRepository.findAllById(normalizedDiseaseCodes)
+        val diseasesByCode = diseaseMasterRepository.findAllById(requestedDiseaseCodes)
             .associateBy { it.diseaseCode }
 
-        if (diseasesByCode.size != normalizedDiseaseCodes.size) {
+        if (diseasesByCode.size != requestedDiseaseCodes.size) {
             throw BusinessException(ErrorCode.INVALID_DISEASE_CODE)
         }
 
         val existingDiseaseMaps = userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
-        if (existingDiseaseMaps.isNotEmpty()) {
-            userDiseaseMapRepository.deleteAll(existingDiseaseMaps)
+        val existingDiseaseMapsByCode = existingDiseaseMaps.groupBy { it.disease.diseaseCode }
+        val requestedDiseaseCodeSet = requestedDiseaseCodes.toSet()
+
+        val diseaseMapsToRemove = existingDiseaseMapsByCode
+            .filter { (diseaseCode, diseaseMaps) ->
+                diseaseCode !in requestedDiseaseCodeSet || diseaseMaps.size > 1
+            }
+            .flatMap { (diseaseCode, diseaseMaps) ->
+                if (diseaseCode in requestedDiseaseCodeSet) {
+                    diseaseMaps.drop(1)
+                } else {
+                    diseaseMaps
+                }
+            }
+
+        if (diseaseMapsToRemove.isNotEmpty()) {
+            userDiseaseMapRepository.deleteAllInBatch(diseaseMapsToRemove)
         }
 
-        userDiseaseMapRepository.saveAll(
-            normalizedDiseaseCodes.map { diseaseCode ->
-                UserDiseaseMap(
-                    user = user,
-                    disease = diseasesByCode.getValue(diseaseCode),
-                )
-            },
-        )
+        val diseaseCodesToAdd = requestedDiseaseCodes.filter { !existingDiseaseMapsByCode.containsKey(it) }
+        if (diseaseCodesToAdd.isNotEmpty()) {
+            userDiseaseMapRepository.saveAll(
+                diseaseCodesToAdd.map { diseaseCode ->
+                    UserDiseaseMap(
+                        user = user,
+                        disease = diseasesByCode.getValue(diseaseCode),
+                    )
+                },
+            )
+        }
     }
 
     private fun replaceAllergies(

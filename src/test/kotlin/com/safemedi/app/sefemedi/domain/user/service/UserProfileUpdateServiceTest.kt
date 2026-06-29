@@ -95,20 +95,20 @@ class UserProfileUpdateServiceTest {
                 diseaseName = "고혈압",
             ),
         )
-        val newDiseaseMap1 = UserDiseaseMap(
+        val removedDiseaseMap = UserDiseaseMap(
             id = 11L,
+            user = user,
+            disease = DiseaseMaster(
+                diseaseCode = "E11",
+                diseaseName = "당뇨병",
+            ),
+        )
+        val addedDiseaseMap = UserDiseaseMap(
+            id = 12L,
             user = user,
             disease = DiseaseMaster(
                 diseaseCode = "J30",
                 diseaseName = "비염",
-            ),
-        )
-        val newDiseaseMap2 = UserDiseaseMap(
-            id = 12L,
-            user = user,
-            disease = DiseaseMaster(
-                diseaseCode = "I10",
-                diseaseName = "고혈압",
             ),
         )
         val oldAllergy = UserAllergy(
@@ -136,8 +136,8 @@ class UserProfileUpdateServiceTest {
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userHealthProfileRepository.findById(1L)).willReturn(Optional.of(profile))
         given(userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
-            listOf(oldDiseaseMap),
-            listOf(newDiseaseMap1, newDiseaseMap2),
+            listOf(oldDiseaseMap, removedDiseaseMap),
+            listOf(oldDiseaseMap, addedDiseaseMap),
         )
         given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
             listOf(oldAllergy),
@@ -185,14 +185,14 @@ class UserProfileUpdateServiceTest {
         assertEquals(Gender.MALE, profile.gender)
         assertEquals(BloodType.O, profile.bloodType)
         assertEquals(RhType.PLUS, profile.rhType)
-        verify(userDiseaseMapRepository).deleteAll(listOf(oldDiseaseMap))
+        verify(userDiseaseMapRepository).deleteAllInBatch(listOf(removedDiseaseMap))
         verify(userAllergyRepository).deleteAll(listOf(oldAllergy))
 
         @Suppress("UNCHECKED_CAST")
         val diseaseCaptor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<UserDiseaseMap>>
         verify(userDiseaseMapRepository).saveAll(diseaseCaptor.capture())
         assertEquals(
-            listOf("J30", "I10"),
+            listOf("J30"),
             diseaseCaptor.value.map { it.disease.diseaseCode },
         )
 
@@ -216,8 +216,8 @@ class UserProfileUpdateServiceTest {
                 rhType = RhType.PLUS,
                 isTutorialCompleted = true,
                 diseases = listOf(
-                    DiseaseResponse("J30", "비염"),
                     DiseaseResponse("I10", "고혈압"),
+                    DiseaseResponse("J30", "비염"),
                 ),
                 allergies = listOf(
                     AllergyResponse(

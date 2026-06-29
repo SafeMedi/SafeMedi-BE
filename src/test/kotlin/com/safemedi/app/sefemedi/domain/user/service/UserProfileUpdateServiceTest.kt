@@ -162,9 +162,9 @@ class UserProfileUpdateServiceTest {
             socialId = "4903042739",
             request = UserProfileUpdateRequest(
                 nickname = "홍길동01",
-                gender = "MALE",
-                bloodType = "O",
-                rhType = "PLUS",
+                gender = " MALE ",
+                bloodType = " O ",
+                rhType = " PLUS ",
                 diseaseCodes = listOf("j30", "I10", "J30"),
                 allergies = listOf(
                     UserProfileUpdateAllergyRequest(

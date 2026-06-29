@@ -433,7 +433,7 @@ class UserService(
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String): T {
         return try {
-            enumValueOf<T>(value.uppercase())
+            enumValueOf<T>(value.trim().uppercase())
         } catch (_: IllegalArgumentException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }

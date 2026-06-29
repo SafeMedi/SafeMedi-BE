@@ -7,6 +7,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: ${{ secrets.HTTP_DOMAIN }}/swagger-ui/index.html
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

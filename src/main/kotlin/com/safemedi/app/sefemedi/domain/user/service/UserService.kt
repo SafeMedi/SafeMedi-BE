@@ -197,26 +197,38 @@ class UserService(
         userId: Long,
         allergyRequests: List<UserProfileUpdateAllergyRequest>,
     ) {
-        val parsedAllergies = allergyRequests.map { parseProfileAllergy(it) }
+        val requestedAllergies = allergyRequests
+            .map { parseProfileAllergy(it) }
+            .distinctBy { it.key() }
         val existingAllergies = userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
-        if (existingAllergies.isNotEmpty()) {
-            userAllergyRepository.deleteAll(existingAllergies)
+        val existingAllergiesByKey = existingAllergies.groupBy { it.key() }
+        val requestedAllergyKeys = requestedAllergies.map { it.key() }.toSet()
+
+        val allergiesToRemove = existingAllergiesByKey.flatMap { (key, allergies) ->
+            if (key in requestedAllergyKeys) {
+                allergies.drop(1)
+            } else {
+                allergies
+            }
         }
 
-        if (parsedAllergies.isEmpty()) {
-            return
+        if (allergiesToRemove.isNotEmpty()) {
+            userAllergyRepository.deleteAllInBatch(allergiesToRemove)
         }
 
-        userAllergyRepository.saveAll(
-            parsedAllergies.map { allergy ->
-                UserAllergy(
-                    user = user,
-                    allergyType = allergy.type,
-                    allergyValue = allergy.value,
-                    allergyName = allergy.name,
-                )
-            },
-        )
+        val allergiesToAdd = requestedAllergies.filter { !existingAllergiesByKey.containsKey(it.key()) }
+        if (allergiesToAdd.isNotEmpty()) {
+            userAllergyRepository.saveAll(
+                allergiesToAdd.map { allergy ->
+                    UserAllergy(
+                        user = user,
+                        allergyType = allergy.type,
+                        allergyValue = allergy.value,
+                        allergyName = allergy.name,
+                    )
+                },
+            )
+        }
     }
 
     private fun normalizeDiseaseCodes(diseaseCodes: List<String>): List<String> {
@@ -284,6 +296,28 @@ class UserService(
         val value: String,
         val name: String,
     )
+
+    private data class ParsedProfileAllergyKey(
+        val type: AllergyType,
+        val value: String,
+        val name: String,
+    )
+
+    private fun ParsedProfileAllergy.key(): ParsedProfileAllergyKey {
+        return ParsedProfileAllergyKey(
+            type = type,
+            value = value,
+            name = name,
+        )
+    }
+
+    private fun UserAllergy.key(): ParsedProfileAllergyKey {
+        return ParsedProfileAllergyKey(
+            type = allergyType,
+            value = allergyValue,
+            name = allergyName,
+        )
+    }
 
     @Transactional(readOnly = true)
     fun getNotificationSettings(

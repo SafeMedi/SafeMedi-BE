@@ -118,14 +118,14 @@ class UserProfileUpdateServiceTest {
             allergyValue = "Peanut",
             allergyName = "땅콩",
         )
-        val newAllergy1 = UserAllergy(
+        val retainedAllergy = UserAllergy(
             id = 21L,
             user = user,
             allergyType = AllergyType.INGREDIENT,
             allergyValue = "M249154",
             allergyName = "아세트아미노펜",
         )
-        val newAllergy2 = UserAllergy(
+        val addedAllergy = UserAllergy(
             id = 22L,
             user = user,
             allergyType = AllergyType.CUSTOM,
@@ -140,8 +140,8 @@ class UserProfileUpdateServiceTest {
             listOf(oldDiseaseMap, addedDiseaseMap),
         )
         given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
-            listOf(oldAllergy),
-            listOf(newAllergy1, newAllergy2),
+            listOf(oldAllergy, retainedAllergy),
+            listOf(retainedAllergy, addedAllergy),
         )
         given(diseaseMasterRepository.findAllById(listOf("J30", "I10"))).willReturn(
             listOf(
@@ -186,7 +186,7 @@ class UserProfileUpdateServiceTest {
         assertEquals(BloodType.O, profile.bloodType)
         assertEquals(RhType.PLUS, profile.rhType)
         verify(userDiseaseMapRepository).deleteAllInBatch(listOf(removedDiseaseMap))
-        verify(userAllergyRepository).deleteAll(listOf(oldAllergy))
+        verify(userAllergyRepository).deleteAllInBatch(listOf(oldAllergy))
 
         @Suppress("UNCHECKED_CAST")
         val diseaseCaptor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<UserDiseaseMap>>
@@ -200,7 +200,7 @@ class UserProfileUpdateServiceTest {
         val allergyCaptor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<UserAllergy>>
         verify(userAllergyRepository).saveAll(allergyCaptor.capture())
         assertEquals(
-            listOf(AllergyType.INGREDIENT, AllergyType.CUSTOM),
+            listOf(AllergyType.CUSTOM),
             allergyCaptor.value.map { it.allergyType },
         )
 

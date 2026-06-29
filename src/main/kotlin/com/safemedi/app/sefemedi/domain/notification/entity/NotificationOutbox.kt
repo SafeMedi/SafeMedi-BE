@@ -45,4 +45,27 @@ class NotificationOutbox(
 
     @Column(name = "next_retry_at")
     var nextRetryAt: LocalDateTime? = null,
-) : BaseTimeEntity()
+) : BaseTimeEntity() {
+
+    fun markProcessing() {
+        status = NotificationOutboxStatus.PROCESSING
+    }
+
+    fun markSent() {
+        status = NotificationOutboxStatus.SENT
+        nextRetryAt = null
+    }
+
+    fun markRetryScheduled(
+        nextRetryAt: LocalDateTime,
+    ) {
+        status = NotificationOutboxStatus.FAILED
+        retryCount += 1
+        this.nextRetryAt = nextRetryAt
+    }
+
+    fun markDead() {
+        status = NotificationOutboxStatus.DEAD
+        nextRetryAt = null
+    }
+}

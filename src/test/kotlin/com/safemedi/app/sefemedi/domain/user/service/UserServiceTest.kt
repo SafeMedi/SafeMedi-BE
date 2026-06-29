@@ -334,7 +334,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `updateNotificationSettings updates latest device notification settings`() {
+    fun `알림 설정 수정은 활성 기기의 알림 설정을 변경한다`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -375,7 +375,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `updateNotificationSettings keeps omitted fields`() {
+    fun `알림 설정 수정은 요청에서 생략된 필드를 기존 값으로 유지한다`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -414,7 +414,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `updateNotificationSettings updates latest active device only`() {
+    fun `알림 설정 수정은 비활성 기기를 제외하고 최신 활성 기기만 변경한다`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -469,7 +469,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `updateNotificationSettings throws DEVICE_TOKEN_NOT_FOUND when there is no device record`() {
+    fun `알림 설정 수정은 활성 기기가 없으면 DEVICE_TOKEN_NOT_FOUND 예외를 던진다`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",

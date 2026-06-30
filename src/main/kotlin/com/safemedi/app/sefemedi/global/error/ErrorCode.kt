@@ -12,6 +12,11 @@ enum class ErrorCode(
         "VAL_001",
         "요청 값이 올바르지 않습니다.",
     ),
+    INVALID_NICKNAME_LENGTH(
+        HttpStatus.BAD_REQUEST,
+        "VAL_001",
+        "닉네임은 최소 5자, 최대 20자 입력 가능합니다.",
+    ),
     INVALID_ENUM_VALUE(
         HttpStatus.BAD_REQUEST,
         "VAL_001",
@@ -21,6 +26,11 @@ enum class ErrorCode(
         HttpStatus.BAD_REQUEST,
         "VAL_002",
         "존재하지 않는 기저질환 코드가 포함되어 있습니다.",
+    ),
+    INVALID_ALLERGY_FORMAT(
+        HttpStatus.BAD_REQUEST,
+        "VAL_002",
+        "알러지 형식이 올바르지 않습니다.",
     ),
     DEVICE_TOKEN_TOO_LONG(
         HttpStatus.BAD_REQUEST,

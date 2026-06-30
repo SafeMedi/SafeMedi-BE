@@ -13,6 +13,8 @@ import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsUpdateRequest
+import com.safemedi.app.sefemedi.domain.user.dto.UserProfileUpdateAllergyRequest
+import com.safemedi.app.sefemedi.domain.user.dto.UserProfileUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.entity.AllergyType
 import com.safemedi.app.sefemedi.domain.user.entity.BloodType
@@ -51,12 +53,42 @@ class UserService(
     fun getMyProfile(
         socialId: String,
     ): UserProfileResponse {
-        val user = userRepository.findBySocialId(socialId)
-            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val user = findUserBySocialId(socialId)
+        return buildMyProfileResponse(user)
+    }
 
-        val userId = user.id
-            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+    @Transactional
+    fun updateMyProfile(
+        socialId: String,
+        request: UserProfileUpdateRequest,
+    ): UserProfileResponse {
+        val user = findUserBySocialId(socialId)
+        val userId = requireUserId(user)
 
+        request.nickname?.let { user.nickname = validateNickname(it) }
+
+        val profile = userHealthProfileRepository.findByIdOrNull(userId)
+            ?: UserHealthProfile(
+                userId = userId,
+                user = user,
+            )
+
+        request.gender?.let { profile.gender = parseEnum<Gender>(it) }
+        request.bloodType?.let { profile.bloodType = parseEnum<BloodType>(it) }
+        request.rhType?.let { profile.rhType = parseEnum<RhType>(it) }
+
+        request.diseaseCodes?.let { replaceDiseases(user, userId, it) }
+        request.allergies?.let { replaceAllergies(user, userId, it) }
+
+        userHealthProfileRepository.save(profile)
+
+        return buildMyProfileResponse(user)
+    }
+
+    private fun buildMyProfileResponse(
+        user: com.safemedi.app.sefemedi.domain.user.entity.User,
+    ): UserProfileResponse {
+        val userId = requireUserId(user)
         val profile = userHealthProfileRepository.findByIdOrNull(userId)
 
         val diseases = userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
@@ -110,6 +142,180 @@ class UserService(
             allergies = allergies,
             families = families,
             settings = settings,
+        )
+    }
+
+    private fun replaceDiseases(
+        user: com.safemedi.app.sefemedi.domain.user.entity.User,
+        userId: Long,
+        diseaseCodes: List<String>,
+    ) {
+        val requestedDiseaseCodes = normalizeDiseaseCodes(diseaseCodes)
+
+        val diseasesByCode = diseaseMasterRepository.findAllById(requestedDiseaseCodes)
+            .associateBy { it.diseaseCode }
+
+        if (diseasesByCode.size != requestedDiseaseCodes.size) {
+            throw BusinessException(ErrorCode.INVALID_DISEASE_CODE)
+        }
+
+        val existingDiseaseMaps = userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
+        val existingDiseaseMapsByCode = existingDiseaseMaps.groupBy { it.disease.diseaseCode }
+        val requestedDiseaseCodeSet = requestedDiseaseCodes.toSet()
+
+        val diseaseMapsToRemove = existingDiseaseMapsByCode
+            .filter { (diseaseCode, diseaseMaps) ->
+                diseaseCode !in requestedDiseaseCodeSet || diseaseMaps.size > 1
+            }
+            .flatMap { (diseaseCode, diseaseMaps) ->
+                if (diseaseCode in requestedDiseaseCodeSet) {
+                    diseaseMaps.drop(1)
+                } else {
+                    diseaseMaps
+                }
+            }
+
+        if (diseaseMapsToRemove.isNotEmpty()) {
+            userDiseaseMapRepository.deleteAllInBatch(diseaseMapsToRemove)
+        }
+
+        val diseaseCodesToAdd = requestedDiseaseCodes.filter { !existingDiseaseMapsByCode.containsKey(it) }
+        if (diseaseCodesToAdd.isNotEmpty()) {
+            userDiseaseMapRepository.saveAll(
+                diseaseCodesToAdd.map { diseaseCode ->
+                    UserDiseaseMap(
+                        user = user,
+                        disease = diseasesByCode.getValue(diseaseCode),
+                    )
+                },
+            )
+        }
+    }
+
+    private fun replaceAllergies(
+        user: com.safemedi.app.sefemedi.domain.user.entity.User,
+        userId: Long,
+        allergyRequests: List<UserProfileUpdateAllergyRequest>,
+    ) {
+        val requestedAllergies = allergyRequests
+            .map { parseProfileAllergy(it) }
+            .distinctBy { it.key() }
+        val existingAllergies = userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(userId)
+        val existingAllergiesByKey = existingAllergies.groupBy { it.key() }
+        val requestedAllergyKeys = requestedAllergies.map { it.key() }.toSet()
+
+        val allergiesToRemove = existingAllergiesByKey.flatMap { (key, allergies) ->
+            if (key in requestedAllergyKeys) {
+                allergies.drop(1)
+            } else {
+                allergies
+            }
+        }
+
+        if (allergiesToRemove.isNotEmpty()) {
+            userAllergyRepository.deleteAllInBatch(allergiesToRemove)
+        }
+
+        val allergiesToAdd = requestedAllergies.filter { !existingAllergiesByKey.containsKey(it.key()) }
+        if (allergiesToAdd.isNotEmpty()) {
+            userAllergyRepository.saveAll(
+                allergiesToAdd.map { allergy ->
+                    UserAllergy(
+                        user = user,
+                        allergyType = allergy.type,
+                        allergyValue = allergy.value,
+                        allergyName = allergy.name,
+                    )
+                },
+            )
+        }
+    }
+
+    private fun normalizeDiseaseCodes(diseaseCodes: List<String>): List<String> {
+        val normalizedCodes = diseaseCodes.map { it.trim().uppercase() }
+        if (normalizedCodes.any { it.isBlank() }) {
+            throw BusinessException(ErrorCode.INVALID_DISEASE_CODE)
+        }
+
+        return normalizedCodes.distinct()
+    }
+
+    private fun validateNickname(nickname: String): String {
+        val trimmedNickname = nickname.trim()
+        if (trimmedNickname.length !in 5..20) {
+            throw BusinessException(ErrorCode.INVALID_NICKNAME_LENGTH)
+        }
+
+        return trimmedNickname
+    }
+
+    private fun parseProfileAllergy(
+        request: UserProfileUpdateAllergyRequest,
+    ): ParsedProfileAllergy {
+        val type = parseProfileAllergyType(request.type)
+        val value = request.value.trim()
+        val name = request.name.trim()
+
+        if (value.isBlank() || name.isBlank()) {
+            throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
+        }
+
+        return ParsedProfileAllergy(
+            type = type,
+            value = value,
+            name = name,
+        )
+    }
+
+    private fun parseProfileAllergyType(value: String): AllergyType {
+        val parsedType = try {
+            enumValueOf<AllergyType>(value.trim().uppercase())
+        } catch (_: IllegalArgumentException) {
+            throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
+        }
+
+        return when (parsedType) {
+            AllergyType.ATC_GROUP,
+            AllergyType.INGREDIENT,
+            AllergyType.CUSTOM -> parsedType
+            AllergyType.FOOD -> throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
+        }
+    }
+
+    private fun findUserBySocialId(socialId: String): com.safemedi.app.sefemedi.domain.user.entity.User {
+        return userRepository.findBySocialId(socialId)
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+    }
+
+    private fun requireUserId(user: com.safemedi.app.sefemedi.domain.user.entity.User): Long {
+        return user.id ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+    }
+
+    private data class ParsedProfileAllergy(
+        val type: AllergyType,
+        val value: String,
+        val name: String,
+    )
+
+    private data class ParsedProfileAllergyKey(
+        val type: AllergyType,
+        val value: String,
+        val name: String,
+    )
+
+    private fun ParsedProfileAllergy.key(): ParsedProfileAllergyKey {
+        return ParsedProfileAllergyKey(
+            type = type,
+            value = value,
+            name = name,
+        )
+    }
+
+    private fun UserAllergy.key(): ParsedProfileAllergyKey {
+        return ParsedProfileAllergyKey(
+            type = allergyType,
+            value = allergyValue,
+            name = allergyName,
         )
     }
 
@@ -271,7 +477,7 @@ class UserService(
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String): T {
         return try {
-            enumValueOf<T>(value.uppercase())
+            enumValueOf<T>(value.trim().uppercase())
         } catch (_: IllegalArgumentException) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }

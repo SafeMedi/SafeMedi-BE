@@ -7,9 +7,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: development
-      url: ${{ vars.HTTP_DOMAIN }}/swagger-ui/index.html
 
     steps:
       - name: Checkout code
@@ -86,3 +83,12 @@ jobs:
             grafana/grafana
             
             docker image prune -af
+    
+      - name: Send deployment status to Discord
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "배포 상태: ${{ job.status }}"
+          description: "커밋: ${{ github.sha }} \n작성자: ${{ github.actor }}"
+          color: ${{ job.status == 'success' && '0x00FF00' || job.status == 'failure' && '0xFF0000' || '0xFFFF00' }}

@@ -2,8 +2,10 @@ package com.safemedi.app.sefemedi.domain.medication.controller
 
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationRecordUpdateRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationRecordUpdateResponse
+import com.safemedi.app.sefemedi.domain.medication.dto.MedicationStatisticsResponse
 import com.safemedi.app.sefemedi.domain.medication.dto.TodayMedicationScheduleResponse
 import com.safemedi.app.sefemedi.domain.medication.service.MedicationRecordUpdateService
+import com.safemedi.app.sefemedi.domain.medication.service.MedicationStatisticsService
 import com.safemedi.app.sefemedi.domain.medication.service.TodayMedicationScheduleService
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class MedicationRecordController(
     private val todayMedicationScheduleService: TodayMedicationScheduleService,
     private val medicationRecordUpdateService: MedicationRecordUpdateService,
+    private val medicationStatisticsService: MedicationStatisticsService,
 ) {
     @GetMapping("/today")
     fun findTodaySchedules(
@@ -27,6 +31,21 @@ class MedicationRecordController(
     ): TodayMedicationScheduleResponse {
         return todayMedicationScheduleService.findTodaySchedules(
             socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
+        )
+    }
+
+    @GetMapping("/statistics")
+    fun findStatistics(
+        @AuthenticationPrincipal socialId: String?,
+        @RequestParam(required = false) startDate: String?,
+        @RequestParam(required = false) endDate: String?,
+        @RequestParam(required = false) familyId: Long?,
+    ): MedicationStatisticsResponse {
+        return medicationStatisticsService.findStatistics(
+            socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
+            startDate = startDate,
+            endDate = endDate,
+            familyId = familyId,
         )
     }
 

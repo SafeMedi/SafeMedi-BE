@@ -10,4 +10,10 @@ interface FamilyRepository : JpaRepository<Family, Long> {
     fun findAllByUser_IdOrderByCreatedAtAsc(
         userId: Long,
     ): List<Family>
+
+    @EntityGraph(attributePaths = ["connectedUser"], type = EntityGraph.EntityGraphType.FETCH)
+    fun findByIdAndUser_Id(
+        id: Long,
+        userId: Long,
+    ): Family?
 }

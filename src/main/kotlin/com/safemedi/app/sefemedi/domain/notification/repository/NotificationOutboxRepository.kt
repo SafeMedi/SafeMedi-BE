@@ -4,6 +4,7 @@ import com.safemedi.app.sefemedi.domain.notification.entity.NotificationOutbox
 import com.safemedi.app.sefemedi.domain.notification.entity.NotificationOutboxStatus
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -27,4 +28,15 @@ interface NotificationOutboxRepository : JpaRepository<NotificationOutbox, Long>
         @Param("now") now: LocalDateTime,
         pageable: Pageable,
     ): List<NotificationOutbox>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from NotificationOutbox o
+        where o.user.id = :userId
+        """
+    )
+    fun deleteAllByUser_Id(
+        @Param("userId") userId: Long,
+    ): Int
 }

@@ -23,6 +23,17 @@ interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
         userId: Long,
     ): Long
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from NotificationLog n
+        where n.user.id = :userId
+        """
+    )
+    fun deleteAllByUserId(
+        @Param("userId") userId: Long,
+    ): Int
+
     @Modifying(clearAutomatically = true)
     @Query(
         """

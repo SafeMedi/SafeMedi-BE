@@ -2,6 +2,7 @@ package com.safemedi.app.sefemedi.domain.user.entity
 
 import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity
 import jakarta.persistence.*
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "user")
@@ -24,5 +25,15 @@ class User(
     var inviteCode: String? = null,
 
     @Column(name = "is_tutorial_completed")
-    var isTutorialCompleted: Boolean = false
-) : BaseTimeEntity()
+    var isTutorialCompleted: Boolean = false,
+
+    @Column(name = "deleted_at")
+    var deletedAt: LocalDateTime? = null
+) : BaseTimeEntity() {
+    fun withdraw(withdrawnAt: LocalDateTime) {
+        nickname = null
+        inviteCode = null
+        isTutorialCompleted = false
+        deletedAt = withdrawnAt
+    }
+}

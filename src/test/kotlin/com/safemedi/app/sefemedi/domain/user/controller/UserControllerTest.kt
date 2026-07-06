@@ -4,7 +4,9 @@ import com.safemedi.app.sefemedi.domain.user.dto.TutorialRequest
 import com.safemedi.app.sefemedi.domain.user.dto.TutorialResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserWithdrawalResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
+import com.safemedi.app.sefemedi.domain.user.service.UserWithdrawalService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -15,7 +17,8 @@ import org.springframework.security.core.Authentication
 class UserControllerTest {
 
     private val userService = mock(UserService::class.java)
-    private val userController = UserController(userService)
+    private val userWithdrawalService = mock(UserWithdrawalService::class.java)
+    private val userController = UserController(userService, userWithdrawalService)
 
     @Test
     fun `completeTutorial passes authentication name to service`() {
@@ -90,5 +93,19 @@ class UserControllerTest {
 
         assertEquals(response, result)
         verify(userService).getNotificationSettings("4903042739")
+    }
+
+    @Test
+    fun `withdrawMyAccount passes authentication name to withdrawal service`() {
+        val authentication = mock(Authentication::class.java)
+        val response = UserWithdrawalResponse()
+
+        given(authentication.name).willReturn("4903042739")
+        given(userWithdrawalService.withdrawMyAccount("4903042739")).willReturn(response)
+
+        val result = userController.withdrawMyAccount(authentication)
+
+        assertEquals(response, result)
+        verify(userWithdrawalService).withdrawMyAccount("4903042739")
     }
 }

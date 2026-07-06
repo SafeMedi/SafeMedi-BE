@@ -177,4 +177,14 @@ enum class ErrorCode(
         "SYS_500",
         "서버 내부 오류가 발생했습니다.",
     ),
+    FAMILY_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "FAM_002",
+        "존재하지 않거나 연동이 해제된 가족입니다.",
+    ),
+    FAMILY_INFO_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "FAM_004",
+        "해당 가족이 건강 정보 공개를 허용하지 않았습니다.",
+    ),
 }

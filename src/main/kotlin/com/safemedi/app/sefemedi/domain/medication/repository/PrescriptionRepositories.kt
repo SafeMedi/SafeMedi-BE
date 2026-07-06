@@ -11,9 +11,26 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface PrescriptionRepository : JpaRepository<Prescription, Long> {
+    @Query(
+        """
+        select p
+        from Prescription p
+        where p.user.id = :userId
+          and p.deletedAt is null
+          and p.startDate <= :today
+          and p.endDate >= :today
+        order by p.endDate asc, p.id asc
+        """
+    )
+    fun findActiveByUserId(
+        @Param("userId") userId: Long,
+        @Param("today") today: LocalDate,
+    ): List<Prescription>
+
     fun findByUserIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
         userId: Long,
         pageable: Pageable,
@@ -30,6 +47,19 @@ interface PrescriptionRepository : JpaRepository<Prescription, Long> {
 }
 
 interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
+    @Query(
+        """
+        select pd
+        from PrescriptionDrug pd
+        join fetch pd.prescription p
+        where p.id in :prescriptionIds
+        order by p.endDate asc, p.id asc, pd.id asc
+        """
+    )
+    fun findAllByPrescriptionIds(
+        @Param("prescriptionIds") prescriptionIds: Collection<Long>,
+    ): List<PrescriptionDrug>
+
     @Query(
         """
         select pd.prescription.id as prescriptionId, count(pd.id) as drugCount

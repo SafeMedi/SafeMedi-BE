@@ -79,7 +79,7 @@ class UserWithdrawalService(
     }
 
     private fun requireUserId(user: User): Long {
-        return user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+        return user.id ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
     }
 
     private companion object {

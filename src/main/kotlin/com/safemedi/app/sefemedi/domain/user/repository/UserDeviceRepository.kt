@@ -16,10 +16,6 @@ interface UserDeviceRepository : JpaRepository<UserDevice, Long> {
         deviceToken: String,
     ): UserDevice?
 
-    fun existsByUser_IdAndIsActiveTrue(
-        userId: Long,
-    ): Boolean
-
     fun findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(
         userId: Long,
     ): UserDevice?

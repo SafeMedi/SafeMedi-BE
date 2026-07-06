@@ -14,6 +14,7 @@ class User(
     @Column(length = 50)
     var nickname: String? = null,
 
+    @Suppress("unused")
     @Enumerated(EnumType.STRING)
     @Column(name = "social_provider")
     val socialProvider: SocialProvider? = null,
@@ -27,6 +28,7 @@ class User(
     @Column(name = "is_tutorial_completed")
     var isTutorialCompleted: Boolean = false,
 
+    @Suppress("SqlResolve")
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null
 ) : BaseTimeEntity() {

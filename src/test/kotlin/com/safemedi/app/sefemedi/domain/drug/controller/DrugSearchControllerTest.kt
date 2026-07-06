@@ -1,5 +1,6 @@
 package com.safemedi.app.sefemedi.domain.drug.controller
 
+import com.safemedi.app.sefemedi.domain.drug.dto.DrugSearchPageResponse
 import com.safemedi.app.sefemedi.domain.drug.dto.DrugSearchResponse
 import com.safemedi.app.sefemedi.domain.drug.service.DrugSearchService
 import com.safemedi.app.sefemedi.global.error.ErrorCode
@@ -29,16 +30,21 @@ class DrugSearchControllerTest {
     }
 
     @Test
-    fun `search returns matching drugs`() {
-        val keyword = "아목시실린"
-        val mockResponse = listOf(
-            DrugSearchResponse(
-                drugCode = "D001",
-                atcCode = "J01CA04",
-                drugName = "아목시실린500mg",
-            )
+    fun `search returns paged matching drugs`() {
+        val keyword = "tylenol"
+        val mockResponse = DrugSearchPageResponse(
+            content = listOf(
+                DrugSearchResponse(
+                    drugCode = "D001",
+                    atcCode = "N02BE01",
+                    drugName = "Tylenol 500mg",
+                )
+            ),
+            page = 0,
+            size = 20,
+            isLast = true,
         )
-        given(drugSearchService.search(keyword)).willReturn(mockResponse)
+        given(drugSearchService.search(keyword, 0, 20)).willReturn(mockResponse)
 
         val resultActions = mockMvc.perform(
             get("/api/v1/drugs/search")
@@ -49,14 +55,43 @@ class DrugSearchControllerTest {
         resultActions
             .andExpect(status().isOk)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].drugCode").value("D001"))
-            .andExpect(jsonPath("$[0].atcCode").value("J01CA04"))
-            .andExpect(jsonPath("$[0].drugName").value("아목시실린500mg"))
+            .andExpect(jsonPath("$.content[0].drugCode").value("D001"))
+            .andExpect(jsonPath("$.content[0].atcCode").value("N02BE01"))
+            .andExpect(jsonPath("$.content[0].drugName").value("Tylenol 500mg"))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(20))
+            .andExpect(jsonPath("$.isLast").value(true))
+    }
+
+    @Test
+    fun `search uses requested page and size`() {
+        val keyword = "tylenol"
+        val mockResponse = DrugSearchPageResponse(
+            content = emptyList(),
+            page = 1,
+            size = 10,
+            isLast = true,
+        )
+        given(drugSearchService.search(keyword, 1, 10)).willReturn(mockResponse)
+
+        val resultActions = mockMvc.perform(
+            get("/api/v1/drugs/search")
+                .param("keyword", " tylenol ")
+                .param("page", "1")
+                .param("size", "10")
+                .accept(MediaType.APPLICATION_JSON)
+        )
+
+        resultActions
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.page").value(1))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.isLast").value(true))
     }
 
     @Test
     fun `invalid keyword returns validation error`() {
-        val invalidKeyword = "?"
+        val invalidKeyword = "a"
 
         val resultActions = mockMvc.perform(
             get("/api/v1/drugs/search")

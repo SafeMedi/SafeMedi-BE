@@ -97,6 +97,31 @@ enum class ErrorCode(
         "PAG_001",
         "페이지 번호(page)는 0 이상이고 크기(size)는 1 이상이어야 합니다.",
     ),
+    STATISTICS_DATE_REQUIRED(
+        HttpStatus.BAD_REQUEST,
+        "STAT_001",
+        "필수 날짜 파라미터가 누락되었습니다.",
+    ),
+    STATISTICS_INVALID_DATE_FORMAT(
+        HttpStatus.BAD_REQUEST,
+        "STAT_002",
+        "날짜 형식이 올바르지 않습니다. (YYYY-MM-DD 필요)",
+    ),
+    STATISTICS_INVALID_DATE_RANGE(
+        HttpStatus.BAD_REQUEST,
+        "STAT_003",
+        "시작일이 종료일보다 늦을 수 없습니다.",
+    ),
+    STATISTICS_DATE_RANGE_TOO_LONG(
+        HttpStatus.BAD_REQUEST,
+        "STAT_004",
+        "조회 기간이 허용 범위를 초과했습니다.",
+    ),
+    FAMILY_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "FAM_003",
+        "연동되지 않은 가족 정보는 조회할 수 없습니다.",
+    ),
     PRESCRIPTION_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "MED_005",

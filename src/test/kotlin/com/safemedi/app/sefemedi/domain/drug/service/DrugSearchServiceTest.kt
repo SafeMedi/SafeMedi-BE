@@ -69,12 +69,30 @@ class DrugSearchServiceTest {
     }
 
     @Test
-    fun `search throws when size is invalid`() {
+    fun `search coerces size when size exceeds max`() {
+        given(
+            drugMasterRepository.findByDrugNameContainingAndAtcCodeIsNotNullOrderByDrugNameAsc(
+                keyword = "tylenol",
+                pageable = PageRequest.of(0, 50),
+            )
+        ).willReturn(SliceImpl(emptyList(), PageRequest.of(0, 50), false))
+
+        val response = drugSearchService.search(
+            keyword = "tylenol",
+            page = 0,
+            size = 100,
+        )
+
+        assertEquals(50, response.size)
+    }
+
+    @Test
+    fun `search throws when size is less than minimum`() {
         val exception = assertFailsWith<BusinessException> {
             drugSearchService.search(
                 keyword = "tylenol",
                 page = 0,
-                size = 51,
+                size = 0,
             )
         }
 

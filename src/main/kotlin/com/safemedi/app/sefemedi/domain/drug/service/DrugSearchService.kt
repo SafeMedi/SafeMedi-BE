@@ -24,9 +24,10 @@ class DrugSearchService(
             size = size,
         )
 
+        val normalizedSize = size.coerceAtMost(MAX_SIZE)
         val drugs = drugMasterRepository.findByDrugNameContainingAndAtcCodeIsNotNullOrderByDrugNameAsc(
             keyword = keyword,
-            pageable = PageRequest.of(page, size),
+            pageable = PageRequest.of(page, normalizedSize),
         )
 
         return DrugSearchPageResponse(
@@ -38,7 +39,7 @@ class DrugSearchService(
                 )
             },
             page = page,
-            size = size,
+            size = normalizedSize,
             isLast = drugs.isLast,
         )
     }
@@ -47,7 +48,7 @@ class DrugSearchService(
         page: Int,
         size: Int,
     ) {
-        if (page < MIN_PAGE || size < MIN_SIZE || size > MAX_SIZE) {
+        if (page < MIN_PAGE || size < MIN_SIZE) {
             throw BusinessException(ErrorCode.INVALID_PAGE_REQUEST)
         }
     }

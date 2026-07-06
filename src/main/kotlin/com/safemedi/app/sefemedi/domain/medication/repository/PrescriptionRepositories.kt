@@ -179,6 +179,22 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         @Param("endAt") endAt: LocalDateTime,
     ): List<MedicationRecord>
 
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
+        where mr.user.id = :userId
+          and mr.scheduledAt >= :startAt
+          and mr.scheduledAt < :endAt
+        order by mr.scheduledAt asc, mr.id asc
+        """
+    )
+    fun findStatisticsRecords(
+        @Param("userId") userId: Long,
+        @Param("startAt") startAt: LocalDateTime,
+        @Param("endAt") endAt: LocalDateTime,
+    ): List<MedicationRecord>
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(
         """

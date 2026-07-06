@@ -5,3 +5,10 @@ data class DrugSearchResponse(
     val atcCode: String,
     val drugName: String,
 )
+
+data class DrugSearchPageResponse(
+    val content: List<DrugSearchResponse>,
+    val page: Int,
+    val size: Int,
+    val isLast: Boolean,
+)

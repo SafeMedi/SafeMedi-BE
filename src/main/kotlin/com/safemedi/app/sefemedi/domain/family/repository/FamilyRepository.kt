@@ -25,4 +25,9 @@ interface FamilyRepository : JpaRepository<Family, Long> {
     fun deleteAllByUser_IdOrConnectedUser_Id(
         @Param("userId") userId: Long,
     ): Int
+    @EntityGraph(attributePaths = ["connectedUser"], type = EntityGraph.EntityGraphType.FETCH)
+    fun findByIdAndUser_Id(
+        id: Long,
+        userId: Long,
+    ): Family?
 }

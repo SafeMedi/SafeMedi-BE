@@ -26,7 +26,7 @@ interface PrescriptionRepository : JpaRepository<Prescription, Long> {
         where p.user.id = :userId
         """
     )
-    fun deleteAllByUser_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 
@@ -86,7 +86,7 @@ interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
         where pd.prescription.user.id = :userId
         """
     )
-    fun deleteAllByPrescription_User_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 }
@@ -117,7 +117,7 @@ interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, L
         where pdt.prescriptionDrug.prescription.user.id = :userId
         """
     )
-    fun deleteAllByPrescriptionDrug_Prescription_User_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 }
@@ -218,7 +218,7 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         where mr.user.id = :userId
         """
     )
-    fun deleteAllByUser_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 }

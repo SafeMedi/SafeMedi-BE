@@ -36,7 +36,7 @@ interface NotificationOutboxRepository : JpaRepository<NotificationOutbox, Long>
         where o.user.id = :userId
         """
     )
-    fun deleteAllByUser_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 }

@@ -19,7 +19,7 @@ interface UserAllergyRepository : JpaRepository<UserAllergy, Long> {
         where ua.user.id = :userId
         """
     )
-    fun deleteAllByUser_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 }

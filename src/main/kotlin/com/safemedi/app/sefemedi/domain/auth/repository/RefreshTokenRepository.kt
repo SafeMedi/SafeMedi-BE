@@ -19,7 +19,7 @@ interface RefreshTokenRepository : JpaRepository<RefreshToken, Long> {
         where rt.user.id = :userId
         """
     )
-    fun deleteByUser_Id(
+    fun deleteByUserId(
         @Param("userId") userId: Long,
     ): Int
 }

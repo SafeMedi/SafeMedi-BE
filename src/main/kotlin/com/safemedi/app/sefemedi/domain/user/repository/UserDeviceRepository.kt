@@ -27,7 +27,7 @@ interface UserDeviceRepository : JpaRepository<UserDevice, Long> {
         where ud.user.id = :userId
         """
     )
-    fun deleteAllByUser_Id(
+    fun deleteAllByUserId(
         @Param("userId") userId: Long,
     ): Int
 }

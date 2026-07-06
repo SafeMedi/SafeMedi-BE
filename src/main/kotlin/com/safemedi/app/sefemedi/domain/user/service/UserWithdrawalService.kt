@@ -63,19 +63,19 @@ class UserWithdrawalService(
     }
 
     private fun deleteRelatedData(userId: Long) {
-        refreshTokenRepository.deleteByUser_Id(userId)
-        notificationOutboxRepository.deleteAllByUser_Id(userId)
+        refreshTokenRepository.deleteByUserId(userId)
+        notificationOutboxRepository.deleteAllByUserId(userId)
         notificationLogRepository.deleteAllByUserId(userId)
-        medicationRecordRepository.deleteAllByUser_Id(userId)
-        prescriptionDrugTimeRepository.deleteAllByPrescriptionDrug_Prescription_User_Id(userId)
-        prescriptionDrugRepository.deleteAllByPrescription_User_Id(userId)
-        prescriptionRepository.deleteAllByUser_Id(userId)
-        familyRequestRepository.deleteAllBySender_IdOrReceiver_Id(userId)
-        familyRepository.deleteAllByUser_IdOrConnectedUser_Id(userId)
-        userDeviceRepository.deleteAllByUser_Id(userId)
-        userAllergyRepository.deleteAllByUser_Id(userId)
-        userDiseaseMapRepository.deleteAllByUser_Id(userId)
-        userHealthProfileRepository.deleteByUser_Id(userId)
+        medicationRecordRepository.deleteAllByUserId(userId)
+        prescriptionDrugTimeRepository.deleteAllByUserId(userId)
+        prescriptionDrugRepository.deleteAllByUserId(userId)
+        prescriptionRepository.deleteAllByUserId(userId)
+        familyRequestRepository.deleteAllBySenderIdOrReceiverId(userId)
+        familyRepository.deleteAllByUserIdOrConnectedUserId(userId)
+        userDeviceRepository.deleteAllByUserId(userId)
+        userAllergyRepository.deleteAllByUserId(userId)
+        userDiseaseMapRepository.deleteAllByUserId(userId)
+        userHealthProfileRepository.deleteByUserId(userId)
     }
 
     private fun requireUserId(user: User): Long {

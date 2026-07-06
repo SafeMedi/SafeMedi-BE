@@ -16,7 +16,7 @@ interface FamilyRequestRepository : JpaRepository<FamilyRequest, Long> {
            or fr.receiver.id = :userId
         """
     )
-    fun deleteAllBySender_IdOrReceiver_Id(
+    fun deleteAllBySenderIdOrReceiverId(
         @Param("userId") userId: Long,
     ): Int
 }

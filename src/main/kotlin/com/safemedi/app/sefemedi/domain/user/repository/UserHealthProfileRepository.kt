@@ -14,7 +14,7 @@ interface UserHealthProfileRepository : JpaRepository<UserHealthProfile, Long> {
         where uhp.user.id = :userId
         """
     )
-    fun deleteByUser_Id(
+    fun deleteByUserId(
         @Param("userId") userId: Long,
     ): Int
 }

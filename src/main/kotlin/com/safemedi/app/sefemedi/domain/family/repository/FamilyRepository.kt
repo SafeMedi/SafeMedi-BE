@@ -22,7 +22,7 @@ interface FamilyRepository : JpaRepository<Family, Long> {
            or f.connectedUser.id = :userId
         """
     )
-    fun deleteAllByUser_IdOrConnectedUser_Id(
+    fun deleteAllByUserIdOrConnectedUserId(
         @Param("userId") userId: Long,
     ): Int
 }

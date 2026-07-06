@@ -46,7 +46,7 @@ class UserWithdrawalService(
         socialId: String,
     ): UserWithdrawalResponse {
         val user = userRepository.findBySocialIdIncludingDeleted(socialId)
-            ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
         if (user.deletedAt != null) {
             throw BusinessException(ErrorCode.USER_ALREADY_WITHDRAWN)

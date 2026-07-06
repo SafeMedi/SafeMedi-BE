@@ -167,4 +167,30 @@ class UserWithdrawalServiceTest {
             userHealthProfileRepository,
         )
     }
+
+    @Test
+    fun `withdrawMyAccount throws USER_NOT_FOUND when user does not exist`() {
+        given(userRepository.findBySocialIdIncludingDeleted("4903042739")).willReturn(null)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userWithdrawalService.withdrawMyAccount("4903042739")
+        }
+
+        assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+        verifyNoInteractions(
+            refreshTokenRepository,
+            notificationOutboxRepository,
+            notificationLogRepository,
+            medicationRecordRepository,
+            prescriptionDrugTimeRepository,
+            prescriptionDrugRepository,
+            prescriptionRepository,
+            familyRequestRepository,
+            familyRepository,
+            userDeviceRepository,
+            userAllergyRepository,
+            userDiseaseMapRepository,
+            userHealthProfileRepository,
+        )
+    }
 }

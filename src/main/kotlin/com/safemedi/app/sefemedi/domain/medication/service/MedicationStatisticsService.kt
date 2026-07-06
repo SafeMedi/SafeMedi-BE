@@ -49,15 +49,17 @@ class MedicationStatisticsService(
             startAt = parsedStartDate.atStartOfDay(),
             endAt = resolveEndAt(parsedEndDate),
         )
+        val totalCount = records.size
+        val takenCount = records.countTaken()
 
         return MedicationStatisticsResponse(
             startDate = parsedStartDate,
             endDate = parsedEndDate,
             familyId = familyId,
             relation = target.relation,
-            totalCount = records.size,
-            takenCount = records.countTaken(),
-            fraction = records.toFraction(),
+            totalCount = totalCount,
+            takenCount = takenCount,
+            fraction = "$takenCount/$totalCount",
             dailyCompliance = records.toDailyCompliance(),
         )
     }
@@ -119,7 +121,7 @@ class MedicationStatisticsService(
     private fun resolveEndAt(
         endDate: LocalDate,
     ): LocalDateTime {
-        val requestedEndAt = endDate.plusDays(1).atStartOfDay().minusNanos(1)
+        val requestedEndAt = endDate.plusDays(1).atStartOfDay()
         val now = LocalDateTime.now(SERVICE_ZONE_ID)
 
         return if (requestedEndAt.isAfter(now)) now else requestedEndAt
@@ -129,21 +131,19 @@ class MedicationStatisticsService(
         return groupBy { it.scheduledAt.toLocalDate() }
             .toSortedMap()
             .map { (date, records) ->
+                val totalCount = records.size
+                val takenCount = records.countTaken()
                 DailyMedicationComplianceResponse(
                     date = date,
-                    takenCount = records.countTaken(),
-                    totalCount = records.size,
-                    fraction = records.toFraction(),
+                    takenCount = takenCount,
+                    totalCount = totalCount,
+                    fraction = "$takenCount/$totalCount",
                 )
             }
     }
 
     private fun List<MedicationRecord>.countTaken(): Int {
         return count { it.status == MedicationStatus.SUCCESS }
-    }
-
-    private fun List<MedicationRecord>.toFraction(): String {
-        return "${countTaken()}/${size}"
     }
 
     private fun requireUserId(

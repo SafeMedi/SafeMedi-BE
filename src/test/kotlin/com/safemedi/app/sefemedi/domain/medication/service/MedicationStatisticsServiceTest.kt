@@ -71,7 +71,7 @@ class MedicationStatisticsServiceTest {
             medicationRecordRepository.findStatisticsRecords(
                 userId = 1L,
                 startAt = LocalDateTime.of(2026, 4, 1, 0, 0),
-                endAt = LocalDateTime.of(2026, 4, 7, 23, 59, 59, 999999999),
+                endAt = LocalDateTime.of(2026, 4, 8, 0, 0),
             )
         ).willReturn(records)
 
@@ -114,7 +114,7 @@ class MedicationStatisticsServiceTest {
             medicationRecordRepository.findStatisticsRecords(
                 userId = 2L,
                 startAt = LocalDateTime.of(2026, 4, 1, 0, 0),
-                endAt = LocalDateTime.of(2026, 4, 7, 23, 59, 59, 999999999),
+                endAt = LocalDateTime.of(2026, 4, 8, 0, 0),
             )
         ).willReturn(emptyList())
 

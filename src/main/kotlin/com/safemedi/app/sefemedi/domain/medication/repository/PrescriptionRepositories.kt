@@ -152,7 +152,7 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         from MedicationRecord mr
         where mr.user.id = :userId
           and mr.scheduledAt >= :startAt
-          and mr.scheduledAt <= :endAt
+          and mr.scheduledAt < :endAt
         order by mr.scheduledAt asc, mr.id asc
         """
     )

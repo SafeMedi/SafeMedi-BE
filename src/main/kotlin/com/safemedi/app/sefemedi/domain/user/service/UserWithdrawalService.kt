@@ -52,12 +52,12 @@ class UserWithdrawalService(
             throw BusinessException(ErrorCode.USER_ALREADY_WITHDRAWN)
         }
 
-        val userId = requireUserId(user)
-        deleteRelatedData(userId)
-
         val withdrawnAt = LocalDateTime.now(SERVICE_ZONE_ID)
         user.withdraw(withdrawnAt)
-        userRepository.save(user)
+        userRepository.saveAndFlush(user)
+
+        val userId = requireUserId(user)
+        deleteRelatedData(userId)
 
         return UserWithdrawalResponse()
     }

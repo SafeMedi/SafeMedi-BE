@@ -92,7 +92,7 @@ class UserWithdrawalServiceTest {
         )
 
         given(userRepository.findBySocialIdIncludingDeleted("4903042739")).willReturn(user)
-        given(userRepository.save(user)).willReturn(user)
+        given(userRepository.saveAndFlush(user)).willReturn(user)
 
         val response = userWithdrawalService.withdrawMyAccount("4903042739")
 
@@ -120,6 +120,7 @@ class UserWithdrawalServiceTest {
         )
 
         order.verify(userRepository).findBySocialIdIncludingDeleted("4903042739")
+        order.verify(userRepository).saveAndFlush(user)
         order.verify(refreshTokenRepository).deleteByUser_Id(1L)
         order.verify(notificationOutboxRepository).deleteAllByUser_Id(1L)
         order.verify(notificationLogRepository).deleteAllByUserId(1L)
@@ -133,7 +134,6 @@ class UserWithdrawalServiceTest {
         order.verify(userAllergyRepository).deleteAllByUser_Id(1L)
         order.verify(userDiseaseMapRepository).deleteAllByUser_Id(1L)
         order.verify(userHealthProfileRepository).deleteByUser_Id(1L)
-        order.verify(userRepository).save(user)
     }
 
     @Test

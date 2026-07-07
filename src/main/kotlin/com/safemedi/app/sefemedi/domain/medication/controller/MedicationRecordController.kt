@@ -2,8 +2,10 @@ package com.safemedi.app.sefemedi.domain.medication.controller
 
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationRecordUpdateRequest
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationRecordUpdateResponse
+import com.safemedi.app.sefemedi.domain.medication.dto.MedicationRecordQueryResponse
 import com.safemedi.app.sefemedi.domain.medication.dto.MedicationStatisticsResponse
 import com.safemedi.app.sefemedi.domain.medication.dto.TodayMedicationScheduleResponse
+import com.safemedi.app.sefemedi.domain.medication.service.MedicationRecordQueryService
 import com.safemedi.app.sefemedi.domain.medication.service.MedicationRecordUpdateService
 import com.safemedi.app.sefemedi.domain.medication.service.MedicationStatisticsService
 import com.safemedi.app.sefemedi.domain.medication.service.TodayMedicationScheduleService
@@ -22,9 +24,25 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/medication-records")
 class MedicationRecordController(
     private val todayMedicationScheduleService: TodayMedicationScheduleService,
+    private val medicationRecordQueryService: MedicationRecordQueryService,
     private val medicationRecordUpdateService: MedicationRecordUpdateService,
     private val medicationStatisticsService: MedicationStatisticsService,
 ) {
+    @GetMapping
+    fun findRecords(
+        @AuthenticationPrincipal socialId: String?,
+        @RequestParam(required = false) type: String?,
+        @RequestParam(required = false) date: String?,
+        @RequestParam(required = false) familyId: Long?,
+    ): MedicationRecordQueryResponse {
+        return medicationRecordQueryService.findRecords(
+            socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
+            type = type,
+            date = date,
+            familyId = familyId,
+        )
+    }
+
     @GetMapping("/today")
     fun findTodaySchedules(
         @AuthenticationPrincipal socialId: String?,

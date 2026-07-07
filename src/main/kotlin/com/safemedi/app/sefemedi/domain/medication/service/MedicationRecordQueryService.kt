@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.temporal.TemporalAdjusters
@@ -86,7 +87,7 @@ class MedicationRecordQueryService(
             familyId = familyId,
             relation = relation,
             summary = records.toSummary(),
-            records = records.map { it.toDailyItem() },
+            records = records.toDailyItems(),
         )
     }
 
@@ -139,7 +140,7 @@ class MedicationRecordQueryService(
     ): MedicationRecordQueryType {
         val trimmed = value?.trim()
         if (trimmed.isNullOrBlank()) {
-            throw BusinessException(ErrorCode.STATISTICS_DATE_REQUIRED)
+            throw BusinessException(ErrorCode.MEDICATION_RECORD_TYPE_REQUIRED)
         }
 
         return try {
@@ -184,14 +185,23 @@ class MedicationRecordQueryService(
         }
     }
 
-    private fun MedicationRecord.toDailyItem(): DailyMedicationRecordItemResponse {
+    private fun List<MedicationRecord>.toDailyItems(): List<DailyMedicationRecordItemResponse> {
+        return groupBy(::recordGroupKey)
+            .values
+            .map { it.toDailyItem() }
+            .sortedWith(compareBy<DailyMedicationRecordItemResponse> { it.scheduledTime }
+                .thenBy { it.prescriptionTitle })
+    }
+
+    private fun List<MedicationRecord>.toDailyItem(): DailyMedicationRecordItemResponse {
+        val firstRecord = first()
         return DailyMedicationRecordItemResponse(
-            recordId = id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
-            prescriptionTitle = prescription.title,
-            medicationNames = listOf(prescriptionDrugTime.prescriptionDrug.drugName),
-            scheduledTime = scheduledAt.toLocalTime().format(TIME_FORMATTER),
-            takenTime = takenAt?.toLocalTime()?.format(TIME_FORMATTER),
-            status = status.name,
+            recordId = firstRecord.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+            prescriptionTitle = firstRecord.prescription.title,
+            medicationNames = map { it.prescriptionDrugTime.prescriptionDrug.drugName }.distinct(),
+            scheduledTime = firstRecord.scheduledAt.toLocalTime().format(TIME_FORMATTER),
+            takenTime = mapNotNull { it.takenAt }.minOrNull()?.toLocalTime()?.format(TIME_FORMATTER),
+            status = resolveGroupStatus().name,
         )
     }
 
@@ -199,23 +209,55 @@ class MedicationRecordQueryService(
         return groupBy { it.scheduledAt.toLocalDate() }
             .toSortedMap()
             .map { (date, records) ->
+                val totalCount = records.size
+                val takenCount = records.countTaken()
                 PeriodMedicationRecordGroupResponse(
                     date = date,
-                    totalCount = records.size,
-                    takenCount = records.countTaken(),
-                    fraction = records.toSummary().fraction,
-                    items = records.map { it.toPeriodItem() },
+                    totalCount = totalCount,
+                    takenCount = takenCount,
+                    fraction = "$takenCount/$totalCount",
+                    items = records.toPeriodItems(),
                 )
             }
     }
 
-    private fun MedicationRecord.toPeriodItem(): PeriodMedicationRecordItemResponse {
+    private fun List<MedicationRecord>.toPeriodItems(): List<PeriodMedicationRecordItemResponse> {
+        return groupBy(::recordGroupKey)
+            .values
+            .map { it.toPeriodItem() }
+            .sortedWith(compareBy<PeriodMedicationRecordItemResponse> { it.scheduledTime }
+                .thenBy { it.prescriptionTitle })
+    }
+
+    private fun List<MedicationRecord>.toPeriodItem(): PeriodMedicationRecordItemResponse {
+        val firstRecord = first()
         return PeriodMedicationRecordItemResponse(
-            recordId = id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
-            prescriptionTitle = prescription.title,
-            scheduledTime = scheduledAt.toLocalTime().format(TIME_FORMATTER),
-            status = status.name,
+            recordId = firstRecord.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+            prescriptionTitle = firstRecord.prescription.title,
+            scheduledTime = firstRecord.scheduledAt.toLocalTime().format(TIME_FORMATTER),
+            status = resolveGroupStatus().name,
         )
+    }
+
+    private fun recordGroupKey(
+        record: MedicationRecord,
+    ): RecordGroupKey {
+        return RecordGroupKey(
+            prescriptionId = record.prescription.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+            scheduledAt = record.scheduledAt,
+        )
+    }
+
+    private fun List<MedicationRecord>.resolveGroupStatus(): MedicationStatus {
+        val statuses = map { it.status }.toSet()
+
+        return when {
+            statuses.size == 1 -> statuses.single()
+            MedicationStatus.PENDING in statuses -> MedicationStatus.PENDING
+            MedicationStatus.FAIL in statuses -> MedicationStatus.FAIL
+            MedicationStatus.SKIP in statuses -> MedicationStatus.SKIP
+            else -> MedicationStatus.SUCCESS
+        }
     }
 
     private fun List<MedicationRecord>.toSummary(): MedicationRecordSummaryResponse {
@@ -246,6 +288,11 @@ class MedicationRecordQueryService(
     private data class QueryPeriod(
         val startDate: LocalDate,
         val endDate: LocalDate,
+    )
+
+    private data class RecordGroupKey(
+        val prescriptionId: Long,
+        val scheduledAt: LocalDateTime,
     )
 
     private companion object {

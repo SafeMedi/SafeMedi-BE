@@ -152,6 +152,11 @@ enum class ErrorCode(
         "REC_002",
         "해당 시간에 이미 복용 처리가 완료된 기록입니다.",
     ),
+    MEDICATION_RECORD_TYPE_REQUIRED(
+        HttpStatus.BAD_REQUEST,
+        "REC_003",
+        "복약 기록 조회 타입은 필수입니다.",
+    ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",

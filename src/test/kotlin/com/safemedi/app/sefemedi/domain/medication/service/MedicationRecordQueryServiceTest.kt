@@ -51,6 +51,7 @@ class MedicationRecordQueryServiceTest {
         val records = listOf(
             medicationRecord(
                 id = 500L,
+                prescriptionId = 25L,
                 user = user,
                 title = "Blood pressure",
                 drugName = "Norvasc",
@@ -60,6 +61,17 @@ class MedicationRecordQueryServiceTest {
             ),
             medicationRecord(
                 id = 501L,
+                prescriptionId = 25L,
+                user = user,
+                title = "Blood pressure",
+                drugName = "Aspirin",
+                scheduledAt = date.atTime(8, 0),
+                takenAt = date.atTime(8, 6),
+                status = MedicationStatus.SUCCESS,
+            ),
+            medicationRecord(
+                id = 502L,
+                prescriptionId = 26L,
                 user = user,
                 title = "Diabetes",
                 drugName = "Diabex",
@@ -86,12 +98,12 @@ class MedicationRecordQueryServiceTest {
         )
 
         assertEquals(LocalDate.of(2026, 5, 12), response.date)
-        assertEquals(2, response.summary.totalCount)
-        assertEquals(1, response.summary.takenCount)
-        assertEquals("1/2", response.summary.fraction)
+        assertEquals(3, response.summary.totalCount)
+        assertEquals(2, response.summary.takenCount)
+        assertEquals("2/3", response.summary.fraction)
         assertEquals(2, response.records?.size)
         assertEquals(500L, response.records?.first()?.recordId)
-        assertEquals(listOf("Norvasc"), response.records?.first()?.medicationNames)
+        assertEquals(listOf("Norvasc", "Aspirin"), response.records?.first()?.medicationNames)
         assertEquals("08:05", response.records?.first()?.takenTime)
         assertEquals(null, response.dailyRecords)
     }
@@ -100,6 +112,7 @@ class MedicationRecordQueryServiceTest {
     fun `findRecords returns monthly medication records by date`() {
         val record = medicationRecord(
             id = 500L,
+            prescriptionId = 25L,
             user = user,
             title = "Blood pressure",
             drugName = "Norvasc",
@@ -185,6 +198,22 @@ class MedicationRecordQueryServiceTest {
     }
 
     @Test
+    fun `findRecords throws when type is missing`() {
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+
+        val exception = assertFailsWith<BusinessException> {
+            medicationRecordQueryService.findRecords(
+                socialId = "kakao-123",
+                type = null,
+                date = "2026-05-12",
+                familyId = null,
+            )
+        }
+
+        assertEquals(ErrorCode.MEDICATION_RECORD_TYPE_REQUIRED, exception.errorCode)
+    }
+
+    @Test
     fun `findRecords throws when family is not connected`() {
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
         given(familyRepository.findByIdAndUser_Id(99L, 1L)).willReturn(null)
@@ -203,6 +232,7 @@ class MedicationRecordQueryServiceTest {
 
     private fun medicationRecord(
         id: Long,
+        prescriptionId: Long = id,
         user: User,
         title: String,
         drugName: String,
@@ -211,7 +241,7 @@ class MedicationRecordQueryServiceTest {
         status: MedicationStatus,
     ): MedicationRecord {
         val prescription = Prescription(
-            id = id,
+            id = prescriptionId,
             user = user,
             title = title,
             startDate = scheduledAt.toLocalDate(),

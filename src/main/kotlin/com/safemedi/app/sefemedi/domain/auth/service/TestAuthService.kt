@@ -34,13 +34,18 @@ class TestAuthService(
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
 
-        val user = userRepository.findBySocialId(
+        val existingUser = userRepository.findBySocialIdIncludingDeleted(
             normalizedSocialId,
-        ) ?: userRepository.save(
-            User(
-                socialId = normalizedSocialId,
-            ),
         )
+        val user = when {
+            existingUser == null -> userRepository.save(
+                User(
+                    socialId = normalizedSocialId,
+                ),
+            )
+            existingUser.deletedAt != null -> throw BusinessException(ErrorCode.USER_ALREADY_WITHDRAWN)
+            else -> existingUser
+        }
 
         val accessToken = jwtProvider.createAccessToken(
             normalizedSocialId,

@@ -19,6 +19,17 @@ interface PrescriptionRepository : JpaRepository<Prescription, Long> {
         pageable: Pageable,
     ): Slice<Prescription>
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from Prescription p
+        where p.user.id = :userId
+        """
+    )
+    fun deleteAllByUserId(
+        @Param("userId") userId: Long,
+    ): Int
+
     fun findByIdAndDeletedAtIsNull(
         id: Long,
     ): Prescription?
@@ -67,6 +78,17 @@ interface PrescriptionDrugRepository : JpaRepository<PrescriptionDrug, Long> {
         @Param("prescriptionId") prescriptionId: Long,
         @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
     ): List<PrescriptionDrug>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from PrescriptionDrug pd
+        where pd.prescription.user.id = :userId
+        """
+    )
+    fun deleteAllByUserId(
+        @Param("userId") userId: Long,
+    ): Int
 }
 
 interface PrescriptionDrugCountProjection {
@@ -87,6 +109,17 @@ interface PrescriptionDrugTimeRepository : JpaRepository<PrescriptionDrugTime, L
     fun findByPrescriptionDrugIds(
         @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
     ): List<PrescriptionDrugTime>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from PrescriptionDrugTime pdt
+        where pdt.prescriptionDrug.prescription.user.id = :userId
+        """
+    )
+    fun deleteAllByUserId(
+        @Param("userId") userId: Long,
+    ): Int
 }
 
 interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
@@ -192,5 +225,16 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         @Param("prescriptionDrugIds") prescriptionDrugIds: Collection<Long>,
         @Param("status") status: MedicationStatus,
         @Param("now") now: LocalDateTime,
+    ): Int
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        delete from MedicationRecord mr
+        where mr.user.id = :userId
+        """
+    )
+    fun deleteAllByUserId(
+        @Param("userId") userId: Long,
     ): Int
 }

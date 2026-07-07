@@ -113,4 +113,24 @@ class AuthServiceTest {
         assertEquals("new-refresh-token", response.refreshToken)
         assertEquals("new-refresh-token", storedRefreshToken.token)
     }
+
+    @Test
+    fun `login rejects withdrawn user`() {
+        val withdrawnUser = User(
+            id = 1L,
+            socialId = "4903042739",
+            deletedAt = java.time.LocalDateTime.now(),
+        )
+
+        given(userRepository.findBySocialIdIncludingDeleted("4903042739")).willReturn(withdrawnUser)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.login(
+                provider = "kakao",
+                accessToken = "kakao-access-token",
+            )
+        }
+
+        assertEquals(ErrorCode.USER_ALREADY_WITHDRAWN, exception.errorCode)
+    }
 }

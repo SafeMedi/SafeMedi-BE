@@ -177,4 +177,9 @@ enum class ErrorCode(
         "SYS_500",
         "서버 내부 오류가 발생했습니다.",
     ),
+    USER_ALREADY_WITHDRAWN(
+        HttpStatus.BAD_REQUEST,
+        "USER_002",
+        "이미 탈퇴 처리가 진행된 사용자입니다.",
+    ),
 }

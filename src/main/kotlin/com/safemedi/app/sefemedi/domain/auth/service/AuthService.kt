@@ -155,13 +155,19 @@ class AuthService(
     private fun findOrCreateUserBySocialId(
         kakaoId: String
     ): User {
-        return userRepository.findBySocialId(
+        val existingUser = userRepository.findBySocialIdIncludingDeleted(
             kakaoId
-        ) ?: userRepository.save(
-            User(
-                socialId = kakaoId
-            )
         )
+
+        return when {
+            existingUser == null -> userRepository.save(
+                User(
+                    socialId = kakaoId
+                )
+            )
+            existingUser.deletedAt != null -> throw BusinessException(ErrorCode.USER_ALREADY_WITHDRAWN)
+            else -> existingUser
+        }
     }
 
     private fun findUserBySocialId(

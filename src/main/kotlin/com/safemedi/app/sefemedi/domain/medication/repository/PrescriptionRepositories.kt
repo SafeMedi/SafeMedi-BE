@@ -195,6 +195,27 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         @Param("endAt") endAt: LocalDateTime,
     ): List<MedicationRecord>
 
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
+        join fetch mr.prescription p
+        join fetch mr.prescriptionDrugTime pdt
+        join fetch pdt.prescriptionDrug pd
+        where mr.user.id = :userId
+          and mr.scheduledAt >= :startAt
+          and mr.scheduledAt < :endAt
+          and p.deletedAt is null
+          and pdt.deletedAt is null
+        order by mr.scheduledAt asc, p.id asc, pd.id asc, mr.id asc
+        """
+    )
+    fun findRecordsForPeriod(
+        @Param("userId") userId: Long,
+        @Param("startAt") startAt: LocalDateTime,
+        @Param("endAt") endAt: LocalDateTime,
+    ): List<MedicationRecord>
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(
         """

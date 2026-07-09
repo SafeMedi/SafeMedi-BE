@@ -4,6 +4,7 @@ import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsRespons
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
+import com.safemedi.app.sefemedi.domain.user.service.UserWithdrawalService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -14,7 +15,8 @@ import org.springframework.security.core.Authentication
 class UserControllerUpdateTest {
 
     private val userService = mock(UserService::class.java)
-    private val userController = UserController(userService)
+    private val userWithdrawalService = mock(UserWithdrawalService::class.java)
+    private val userController = UserController(userService, userWithdrawalService)
 
     @Test
     fun `updateMyProfile passes authentication name to service`() {

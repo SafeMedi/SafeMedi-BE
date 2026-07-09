@@ -10,7 +10,9 @@ import com.safemedi.app.sefemedi.domain.user.dto.UserProfileUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsResponse
 import com.safemedi.app.sefemedi.domain.user.dto.UserNotificationSettingsUpdateRequest
 import com.safemedi.app.sefemedi.domain.user.dto.UserProfileResponse
+import com.safemedi.app.sefemedi.domain.user.dto.UserWithdrawalResponse
 import com.safemedi.app.sefemedi.domain.user.service.UserService
+import com.safemedi.app.sefemedi.domain.user.service.UserWithdrawalService
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/users")
 class UserController(
     private val userService: UserService,
+    private val userWithdrawalService: UserWithdrawalService,
 ) {
 
     @GetMapping("/me")
@@ -100,6 +103,15 @@ class UserController(
         return userService.deactivateDeviceToken(
             authentication.name,
             DeviceTokenDeactivateRequest(deviceToken),
+        )
+    }
+
+    @DeleteMapping("/me")
+    fun withdrawMyAccount(
+        authentication: Authentication,
+    ): UserWithdrawalResponse {
+        return userWithdrawalService.withdrawMyAccount(
+            authentication.name,
         )
     }
 }

@@ -1,20 +1,22 @@
-package com.safemedi.app.sefemedi.domain.user.repository
+package com.safemedi.app.sefemedi.domain.family.repository
 
-import com.safemedi.app.sefemedi.domain.user.entity.UserHealthProfile
+import com.safemedi.app.sefemedi.domain.family.entity.FamilyRequest
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
-interface UserHealthProfileRepository : JpaRepository<UserHealthProfile, Long> {
+interface FamilyRequestRepository : JpaRepository<FamilyRequest, Long> {
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(
         """
-        delete from UserHealthProfile uhp
-        where uhp.user.id = :userId
+        delete from FamilyRequest fr
+        where fr.sender.id = :userId
+           or fr.receiver.id = :userId
         """
     )
-    fun deleteByUserId(
+    fun deleteAllBySenderIdOrReceiverId(
         @Param("userId") userId: Long,
     ): Int
 }

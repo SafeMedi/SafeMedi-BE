@@ -152,6 +152,11 @@ enum class ErrorCode(
         "REC_002",
         "해당 시간에 이미 복용 처리가 완료된 기록입니다.",
     ),
+    MEDICATION_RECORD_TYPE_REQUIRED(
+        HttpStatus.BAD_REQUEST,
+        "REC_003",
+        "복약 기록 조회 타입은 필수입니다.",
+    ),
     INVALID_TOKEN(
         HttpStatus.UNAUTHORIZED,
         "AUTH_001",
@@ -186,5 +191,9 @@ enum class ErrorCode(
         HttpStatus.FORBIDDEN,
         "FAM_004",
         "해당 가족이 건강 정보 공개를 허용하지 않았습니다.",
+    USER_ALREADY_WITHDRAWN(
+        HttpStatus.BAD_REQUEST,
+        "USER_002",
+        "이미 탈퇴 처리가 진행된 사용자입니다.",
     ),
 }

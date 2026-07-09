@@ -48,12 +48,14 @@ class SecurityConfig(
 
                 it.requestMatchers(
                     "/api/v1/users/me",
+                    "/api/v1/users/me/medical-summary",
                     "/api/v1/users/me/tutorial",
                     "/api/v1/users/device-token",
                     "/api/v1/users/notification-settings",
                     "/api/v1/prescriptions/analyze",
                     "/api/v1/prescriptions",
                     "/api/v1/prescriptions/**",
+                    "/api/v1/families/**",
                     "/api/v1/medication-records/today",
                     "/api/v1/medication-records/**",
                     "/api/v1/notifications/**",

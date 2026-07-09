@@ -191,6 +191,7 @@ enum class ErrorCode(
         HttpStatus.FORBIDDEN,
         "FAM_004",
         "해당 가족이 건강 정보 공개를 허용하지 않았습니다.",
+    ),
     USER_ALREADY_WITHDRAWN(
         HttpStatus.BAD_REQUEST,
         "USER_002",

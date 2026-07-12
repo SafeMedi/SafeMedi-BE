@@ -60,6 +60,7 @@ class SecurityConfig(
                     "/api/v1/medication-records/**",
                     "/api/v1/notifications/**",
                     "/api/v1/drugs/search",
+                    "/api/v1/diseases/search",
                 ).authenticated()
 
                 it.anyRequest().denyAll()

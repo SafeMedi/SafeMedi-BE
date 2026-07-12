@@ -88,10 +88,33 @@ class DiseaseSearchControllerTest {
     }
 
     @Test
+    fun `search allows one character keyword`() {
+        val keyword = "a"
+        val mockResponse = DiseaseSearchPageResponse(
+            content = emptyList(),
+            page = 0,
+            size = 20,
+            isLast = true,
+        )
+        given(diseaseSearchService.search(keyword, 0, 20)).willReturn(mockResponse)
+
+        val resultActions = mockMvc.perform(
+            get("/api/v1/diseases/search")
+                .param("keyword", keyword)
+                .accept(MediaType.APPLICATION_JSON)
+        )
+
+        resultActions
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content").isArray)
+            .andExpect(jsonPath("$.size").value(20))
+    }
+
+    @Test
     fun `invalid keyword returns validation error`() {
         val resultActions = mockMvc.perform(
             get("/api/v1/diseases/search")
-                .param("keyword", "a")
+                .param("keyword", " ")
                 .accept(MediaType.APPLICATION_JSON)
         )
 

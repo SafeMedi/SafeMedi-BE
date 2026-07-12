@@ -80,7 +80,7 @@ enum class ErrorCode(
     INVALID_DISEASE_SEARCH_KEYWORD(
         HttpStatus.BAD_REQUEST,
         "VAL_006",
-        "기저질환 검색어는 최소 2글자 이상 입력해야 합니다.",
+        "기저질환 검색어를 입력해야 합니다.",
     ),
     INVALID_PRESCRIPTION_DATE(
         HttpStatus.BAD_REQUEST,

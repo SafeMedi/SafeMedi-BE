@@ -33,6 +33,6 @@ class DiseaseSearchController(
     }
 
     private companion object {
-        const val MIN_KEYWORD_LENGTH = 2
+        const val MIN_KEYWORD_LENGTH = 1
     }
 }

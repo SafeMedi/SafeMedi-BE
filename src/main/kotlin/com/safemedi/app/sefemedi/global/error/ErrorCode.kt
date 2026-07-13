@@ -82,6 +82,11 @@ enum class ErrorCode(
         "VAL_006",
         "기저질환 검색어를 입력해야 합니다.",
     ),
+    INVALID_DRUG_ALLERGY_SEARCH_KEYWORD(
+        HttpStatus.BAD_REQUEST,
+        "VAL_007",
+        "약물 알러지 검색어를 입력해야 합니다.",
+    ),
     INVALID_PRESCRIPTION_DATE(
         HttpStatus.BAD_REQUEST,
         "MED_001",

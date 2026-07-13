@@ -55,6 +55,9 @@ jobs:
             -e DB_URL="${{ secrets.DB_URL }}" \
             -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
             -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            -e FIREBASE_ENABLED="${{ secrets.FIREBASE_ENABLED }}" \
+            -e FIREBASE_CREDENTIALS_PATH="${{ secrets.FIREBASE_CREDENTIALS_PATH }}" \
+            -v "${{ secrets.FIREBASE_HOST_CREDENTIALS_PATH }}:${{ secrets.FIREBASE_CREDENTIALS_PATH }}:ro" \
             --name spring-dev-container \
             --restart on-failure:5 \
             --network monitoring-net \

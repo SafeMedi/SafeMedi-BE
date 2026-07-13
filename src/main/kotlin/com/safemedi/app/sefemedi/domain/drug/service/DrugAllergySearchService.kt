@@ -25,9 +25,8 @@ class DrugAllergySearchService(
         )
 
         val normalizedSize = size.coerceAtMost(MAX_SIZE)
-        val atcGroups = atcGroupMasterRepository.findByAtcNameKoContainingOrAtcNameEnContainingOrderByAtcNameKoAsc(
-            atcNameKo = keyword,
-            atcNameEn = keyword,
+        val atcGroups = atcGroupMasterRepository.searchByKeyword(
+            keyword = keyword,
             pageable = PageRequest.of(page, normalizedSize),
         )
 

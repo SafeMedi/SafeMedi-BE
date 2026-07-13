@@ -33,9 +33,8 @@ class DrugAllergySearchServiceTest {
         )
 
         given(
-            atcGroupMasterRepository.findByAtcNameKoContainingOrAtcNameEnContainingOrderByAtcNameKoAsc(
-                atcNameKo = "penicillin",
-                atcNameEn = "penicillin",
+            atcGroupMasterRepository.searchByKeyword(
+                keyword = "penicillin",
                 pageable = PageRequest.of(0, 20),
             )
         ).willReturn(SliceImpl(listOf(atcGroup), PageRequest.of(0, 20), false))
@@ -58,11 +57,35 @@ class DrugAllergySearchServiceTest {
     }
 
     @Test
+    fun `search uses english name when korean name is null`() {
+        val atcGroup = AtcGroupMaster(
+            atcCode = "J01C",
+            atcNameKo = null,
+            atcNameEn = "BETA-LACTAM ANTIBACTERIALS, PENICILLINS",
+            atcLevel = 3,
+        )
+
+        given(
+            atcGroupMasterRepository.searchByKeyword(
+                keyword = "penicillin",
+                pageable = PageRequest.of(0, 20),
+            )
+        ).willReturn(SliceImpl(listOf(atcGroup), PageRequest.of(0, 20), false))
+
+        val response = drugAllergySearchService.search(
+            keyword = "penicillin",
+            page = 0,
+            size = 20,
+        )
+
+        assertEquals("BETA-LACTAM ANTIBACTERIALS, PENICILLINS", response.content.single().allergyName)
+    }
+
+    @Test
     fun `search coerces size when size exceeds max`() {
         given(
-            atcGroupMasterRepository.findByAtcNameKoContainingOrAtcNameEnContainingOrderByAtcNameKoAsc(
-                atcNameKo = "penicillin",
-                atcNameEn = "penicillin",
+            atcGroupMasterRepository.searchByKeyword(
+                keyword = "penicillin",
                 pageable = PageRequest.of(0, 50),
             )
         ).willReturn(SliceImpl(emptyList(), PageRequest.of(0, 50), false))

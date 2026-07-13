@@ -45,8 +45,9 @@ class NotificationQueryService(
                     isRead = it.isRead,
                     targetType = it.targetType,
                     targetId = it.targetId,
-                    createdAt = (it.createdAt ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR))
-                        .toInstant(ZoneOffset.UTC),
+                    createdAt = it.createdAt
+                        ?.toInstant(ZoneOffset.UTC)
+                        ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
                 )
             },
             page = page,

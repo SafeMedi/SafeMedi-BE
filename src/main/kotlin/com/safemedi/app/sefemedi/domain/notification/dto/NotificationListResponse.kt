@@ -2,7 +2,7 @@ package com.safemedi.app.sefemedi.domain.notification.dto
 
 import com.safemedi.app.sefemedi.domain.notification.entity.NotificationTargetType
 import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
-import java.time.LocalDateTime
+import java.time.Instant
 
 data class NotificationListResponse(
     val content: List<NotificationSummaryResponse>,
@@ -19,5 +19,5 @@ data class NotificationSummaryResponse(
     val isRead: Boolean,
     val targetType: NotificationTargetType?,
     val targetId: Long?,
-    val createdAt: LocalDateTime,
+    val createdAt: Instant,
 )

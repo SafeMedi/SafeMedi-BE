@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.ZoneOffset
 
 @Service
 class NotificationQueryService(
@@ -44,7 +45,8 @@ class NotificationQueryService(
                     isRead = it.isRead,
                     targetType = it.targetType,
                     targetId = it.targetId,
-                    createdAt = it.createdAt ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+                    createdAt = (it.createdAt ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR))
+                        .toInstant(ZoneOffset.UTC),
                 )
             },
             page = page,

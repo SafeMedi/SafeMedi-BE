@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.SliceImpl
 import org.springframework.data.domain.Sort
 import org.springframework.test.util.ReflectionTestUtils
+import java.time.Instant
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -86,7 +87,7 @@ class NotificationQueryServiceTest {
         assertEquals(false, item.isRead)
         assertEquals(NotificationTargetType.MEDICATION_RECORD, item.targetType)
         assertEquals(500L, item.targetId)
-        assertEquals(LocalDateTime.of(2026, 4, 7, 9, 0), item.createdAt)
+        assertEquals(Instant.parse("2026-04-07T09:00:00Z"), item.createdAt)
     }
 
     @Test

@@ -2,11 +2,14 @@ package com.safemedi.app.sefemedi.domain.auth.service
 
 import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
 import com.safemedi.app.sefemedi.domain.auth.dto.LoginResponse
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutResponse
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
 import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
+import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
@@ -20,7 +23,8 @@ class AuthService(
     private val jwtProvider: JwtProvider,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val socialLoginVerifier: SocialLoginVerifier
+    private val socialLoginVerifier: SocialLoginVerifier,
+    private val userDeviceRepository: UserDeviceRepository,
 ) {
 
     @Transactional
@@ -90,6 +94,27 @@ class AuthService(
             accessToken = accessToken,
             refreshToken = newRefreshToken
         )
+    }
+
+    @Transactional
+    fun logout(
+        socialId: String,
+        request: LogoutRequest,
+    ): LogoutResponse {
+        val deviceToken = validateLogoutDeviceToken(request.deviceToken)
+        val user = findUserBySocialId(socialId)
+        val userId = requireUserId(user)
+
+        val userDevice = userDeviceRepository.findByDeviceToken(deviceToken)
+            ?: throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_NOT_FOUND)
+
+        if (userDevice.user.id != userId) {
+            throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_ACCESS_DENIED)
+        }
+
+        userDevice.deactivate()
+
+        return LogoutResponse()
     }
 
     private fun requireSupportedProvider(
@@ -182,6 +207,20 @@ class AuthService(
         return user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
     }
 
+    private fun validateLogoutDeviceToken(
+        deviceToken: String?,
+    ): String {
+        val trimmedToken = deviceToken?.trim()
+        if (trimmedToken.isNullOrBlank()) {
+            throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_REQUIRED)
+        }
+        if (trimmedToken.length > MAX_DEVICE_TOKEN_LENGTH) {
+            throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_TOO_LONG)
+        }
+
+        return trimmedToken
+    }
+
     private data class IssuedTokens(
         val user: User,
         val tokenResponse: TokenResponse,
@@ -189,5 +228,6 @@ class AuthService(
 
     private companion object {
         const val KAKAO_PROVIDER = "kakao"
+        const val MAX_DEVICE_TOKEN_LENGTH = 512
     }
 }

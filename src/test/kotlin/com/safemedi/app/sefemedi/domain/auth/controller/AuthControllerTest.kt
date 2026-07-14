@@ -1,0 +1,54 @@
+package com.safemedi.app.sefemedi.domain.auth.controller
+
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutResponse
+import com.safemedi.app.sefemedi.domain.auth.service.AuthService
+import com.safemedi.app.sefemedi.global.error.BusinessException
+import com.safemedi.app.sefemedi.global.error.ErrorCode
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito.given
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.springframework.security.core.Authentication
+
+class AuthControllerTest {
+
+    private val authService = mock(AuthService::class.java)
+    private val authController = AuthController(authService)
+
+    @Test
+    fun `logout passes authenticated social id to service`() {
+        val authentication = mock(Authentication::class.java)
+        val request = LogoutRequest(
+            deviceToken = "device-token",
+        )
+        val response = LogoutResponse()
+
+        given(authentication.name).willReturn("4903042739")
+        given(authentication.isAuthenticated).willReturn(true)
+        given(authService.logout("4903042739", request)).willReturn(response)
+
+        val result = authController.logout(authentication, request)
+
+        assertEquals(response, result)
+        verify(authService).logout("4903042739", request)
+    }
+
+    @Test
+    fun `logout rejects anonymous authentication`() {
+        val authentication = mock(Authentication::class.java)
+        val request = LogoutRequest(
+            deviceToken = "device-token",
+        )
+
+        given(authentication.isAuthenticated).willReturn(false)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authController.logout(authentication, request)
+        }
+
+        assertEquals(ErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+}

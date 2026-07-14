@@ -1,4 +1,4 @@
-package com.safemedi.app.sefemedi.global.error
+﻿package com.safemedi.app.sefemedi.global.error
 
 import org.springframework.http.HttpStatus
 
@@ -53,6 +53,26 @@ enum class ErrorCode(
         "해당 기기 토큰을 해제할 권한이 없습니다.",
     ),
     DEVICE_TOKEN_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "NOTI_002",
+        "존재하지 않는 기기 토큰입니다.",
+    ),
+    LOGOUT_DEVICE_TOKEN_REQUIRED(
+        HttpStatus.BAD_REQUEST,
+        "VAL_001",
+        "필수 입력값(deviceToken)이 누락되었거나 비어있습니다.",
+    ),
+    LOGOUT_DEVICE_TOKEN_TOO_LONG(
+        HttpStatus.BAD_REQUEST,
+        "VAL_002",
+        "deviceToken은 512자를 초과할 수 없습니다.",
+    ),
+    LOGOUT_DEVICE_TOKEN_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "NOTI_001",
+        "해당 로그아웃 할 권한이 없습니다.",
+    ),
+    LOGOUT_DEVICE_TOKEN_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "NOTI_002",
         "존재하지 않는 기기 토큰입니다.",

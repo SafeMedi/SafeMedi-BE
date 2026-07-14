@@ -2,9 +2,12 @@ package com.safemedi.app.sefemedi.domain.auth.service
 
 import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
 import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.user.entity.User
+import com.safemedi.app.sefemedi.domain.user.entity.UserDevice
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
+import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
@@ -23,6 +26,7 @@ class AuthServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
     private lateinit var socialLoginVerifier: SocialLoginVerifier
+    private lateinit var userDeviceRepository: UserDeviceRepository
     private lateinit var authService: AuthService
 
     @BeforeEach
@@ -30,6 +34,7 @@ class AuthServiceTest {
         jwtProvider = mock(JwtProvider::class.java)
         userRepository = mock(UserRepository::class.java)
         refreshTokenRepository = mock(RefreshTokenRepository::class.java)
+        userDeviceRepository = mock(UserDeviceRepository::class.java)
         socialLoginVerifier = object : SocialLoginVerifier {
             override fun resolveSocialId(accessToken: String): String {
                 return "4903042739"
@@ -41,6 +46,7 @@ class AuthServiceTest {
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
             socialLoginVerifier = socialLoginVerifier,
+            userDeviceRepository = userDeviceRepository,
         )
     }
 
@@ -112,6 +118,145 @@ class AuthServiceTest {
         assertEquals("new-access-token", response.accessToken)
         assertEquals("new-refresh-token", response.refreshToken)
         assertEquals("new-refresh-token", storedRefreshToken.token)
+    }
+
+    @Test
+    fun `logout deactivates current user's active device token`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+
+        val response = authService.logout(
+            socialId = "4903042739",
+            request = LogoutRequest(
+                deviceToken = "device-token",
+            ),
+        )
+
+        assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
+        assertEquals(false, userDevice.isActive)
+    }
+
+    @Test
+    fun `logout succeeds when the device token is already inactive`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = false,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+
+        val response = authService.logout(
+            socialId = "4903042739",
+            request = LogoutRequest(
+                deviceToken = "device-token",
+            ),
+        )
+
+        assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
+        assertEquals(false, userDevice.isActive)
+    }
+
+    @Test
+    fun `logout throws LOGOUT_DEVICE_TOKEN_REQUIRED when device token is blank`() {
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.logout(
+                socialId = "4903042739",
+                request = LogoutRequest(
+                    deviceToken = " ",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.LOGOUT_DEVICE_TOKEN_REQUIRED, exception.errorCode)
+    }
+
+    @Test
+    fun `logout throws LOGOUT_DEVICE_TOKEN_TOO_LONG when device token exceeds length limit`() {
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.logout(
+                socialId = "4903042739",
+                request = LogoutRequest(
+                    deviceToken = "a".repeat(513),
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.LOGOUT_DEVICE_TOKEN_TOO_LONG, exception.errorCode)
+    }
+
+    @Test
+    fun `logout throws LOGOUT_DEVICE_TOKEN_NOT_FOUND when token does not exist`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(null)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.logout(
+                socialId = "4903042739",
+                request = LogoutRequest(
+                    deviceToken = "device-token",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.LOGOUT_DEVICE_TOKEN_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `logout throws LOGOUT_DEVICE_TOKEN_ACCESS_DENIED when token belongs to another user`() {
+        val currentUser = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val otherUser = User(
+            id = 2L,
+            socialId = "other",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = otherUser,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(currentUser)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.logout(
+                socialId = "4903042739",
+                request = LogoutRequest(
+                    deviceToken = "device-token",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.LOGOUT_DEVICE_TOKEN_ACCESS_DENIED, exception.errorCode)
     }
 
     @Test

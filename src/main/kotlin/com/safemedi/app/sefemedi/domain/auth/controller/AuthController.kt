@@ -1,10 +1,17 @@
 package com.safemedi.app.sefemedi.domain.auth.controller
 
 import com.safemedi.app.sefemedi.domain.auth.dto.LoginResponse
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
+import com.safemedi.app.sefemedi.domain.auth.dto.LogoutResponse
 import com.safemedi.app.sefemedi.domain.auth.dto.SocialLoginRequest
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenReissueRequest
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
 import com.safemedi.app.sefemedi.domain.auth.service.AuthService
+import com.safemedi.app.sefemedi.global.error.BusinessException
+import com.safemedi.app.sefemedi.global.error.ErrorCode
+import org.springframework.security.authentication.AnonymousAuthenticationToken
+import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -36,5 +43,38 @@ class AuthController(
         return authService.reissue(
             request.refreshToken
         )
+    }
+
+    @RequestMapping(
+        "/logout",
+        method = [RequestMethod.POST, RequestMethod.DELETE],
+    )
+    fun logout(
+        authentication: Authentication,
+        @RequestBody request: LogoutRequest,
+    ): LogoutResponse {
+        return authService.logout(
+            socialId = requireAuthenticatedSocialId(authentication),
+            request = request,
+        )
+    }
+
+    private fun requireAuthenticatedSocialId(
+        authentication: Authentication,
+    ): String {
+        if (authentication is AnonymousAuthenticationToken || !authentication.isAuthenticated) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+
+        val socialId = authentication.name.trim()
+        if (socialId.isBlank() || socialId == ANONYMOUS_PRINCIPAL_NAME) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+
+        return socialId
+    }
+
+    private companion object {
+        const val ANONYMOUS_PRINCIPAL_NAME = "anonymousUser"
     }
 }

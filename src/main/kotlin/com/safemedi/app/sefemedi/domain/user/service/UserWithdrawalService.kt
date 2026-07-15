@@ -2,7 +2,6 @@ package com.safemedi.app.sefemedi.domain.user.service
 
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
-import com.safemedi.app.sefemedi.domain.family.repository.FamilyRequestRepository
 import com.safemedi.app.sefemedi.domain.medication.repository.MedicationRecordRepository
 import com.safemedi.app.sefemedi.domain.medication.repository.PrescriptionDrugRepository
 import com.safemedi.app.sefemedi.domain.medication.repository.PrescriptionDrugTimeRepository
@@ -31,7 +30,6 @@ class UserWithdrawalService(
     private val userAllergyRepository: UserAllergyRepository,
     private val userDeviceRepository: UserDeviceRepository,
     private val familyRepository: FamilyRepository,
-    private val familyRequestRepository: FamilyRequestRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val prescriptionRepository: PrescriptionRepository,
     private val prescriptionDrugRepository: PrescriptionDrugRepository,
@@ -70,7 +68,6 @@ class UserWithdrawalService(
         prescriptionDrugTimeRepository.deleteAllByUserId(userId)
         prescriptionDrugRepository.deleteAllByUserId(userId)
         prescriptionRepository.deleteAllByUserId(userId)
-        familyRequestRepository.deleteAllBySenderIdOrReceiverId(userId)
         familyRepository.deleteAllByUserIdOrConnectedUserId(userId)
         userDeviceRepository.deleteAllByUserId(userId)
         userAllergyRepository.deleteAllByUserId(userId)

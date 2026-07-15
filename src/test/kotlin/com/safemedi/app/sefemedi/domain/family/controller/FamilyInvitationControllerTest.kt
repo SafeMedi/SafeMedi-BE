@@ -1,9 +1,11 @@
 package com.safemedi.app.sefemedi.domain.family.controller
 
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyInvitationCreateResponse
+import com.safemedi.app.sefemedi.domain.family.dto.FamilyInvitationInfoResponse
 import com.safemedi.app.sefemedi.domain.family.entity.FamilyInvitationStatus
 import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationCreateResult
 import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationCreateService
+import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationQueryService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -14,7 +16,8 @@ import java.time.Instant
 
 class FamilyInvitationControllerTest {
     private val service = mock(FamilyInvitationCreateService::class.java)
-    private val controller = FamilyInvitationController(service)
+    private val queryService = mock(FamilyInvitationQueryService::class.java)
+    private val controller = FamilyInvitationController(service, queryService)
     private val authentication = mock(Authentication::class.java)
     private val response = FamilyInvitationCreateResponse(
         invitationId = 100L,
@@ -48,5 +51,19 @@ class FamilyInvitationControllerTest {
 
         assertEquals(HttpStatus.OK, result.statusCode)
         assertEquals(response, result.body)
+    }
+
+    @Test
+    fun `getInvitationInfo returns invitation information for authenticated user`() {
+        val infoResponse = FamilyInvitationInfoResponse(
+            inviterName = "홍길동",
+            expiresAt = Instant.parse("2026-07-16T06:00:00Z"),
+        )
+        given(authentication.name).willReturn("kakao-123")
+        given(queryService.getInvitationInfo("kakao-123", "invitation-token")).willReturn(infoResponse)
+
+        val result = controller.getInvitationInfo(authentication, "invitation-token")
+
+        assertEquals(infoResponse, result)
     }
 }

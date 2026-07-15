@@ -12,3 +12,8 @@ spring:
 
 jwt:
   secret: abcdefghijklmnopqrstuvwxyz123456
+
+app:
+  family-invitation:
+    base-url: https://test.example.com/invite
+    token-encryption-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

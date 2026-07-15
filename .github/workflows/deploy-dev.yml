@@ -55,6 +55,8 @@ jobs:
             -e DB_URL="${{ secrets.DB_URL }}" \
             -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
             -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            -e FAMILY_INVITATION_BASE_URL="${{ secrets.FAMILY_INVITATION_BASE_URL }}" \
+            -e FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY="${{ secrets.FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY }}" \
             -e FIREBASE_ENABLED="${{ secrets.FIREBASE_ENABLED }}" \
             -e FIREBASE_CREDENTIALS_PATH="${{ secrets.FIREBASE_CREDENTIALS_PATH }}" \
             -v "${{ secrets.FIREBASE_HOST_CREDENTIALS_PATH }}:${{ secrets.FIREBASE_CREDENTIALS_PATH }}:ro" \

@@ -2,7 +2,6 @@ package com.safemedi.app.sefemedi.domain.user.service
 
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
-import com.safemedi.app.sefemedi.domain.family.repository.FamilyRequestRepository
 import com.safemedi.app.sefemedi.domain.medication.repository.MedicationRecordRepository
 import com.safemedi.app.sefemedi.domain.medication.repository.PrescriptionDrugRepository
 import com.safemedi.app.sefemedi.domain.medication.repository.PrescriptionDrugTimeRepository
@@ -36,7 +35,6 @@ class UserWithdrawalServiceTest {
     private lateinit var userAllergyRepository: UserAllergyRepository
     private lateinit var userDeviceRepository: UserDeviceRepository
     private lateinit var familyRepository: FamilyRepository
-    private lateinit var familyRequestRepository: FamilyRequestRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
     private lateinit var prescriptionRepository: PrescriptionRepository
     private lateinit var prescriptionDrugRepository: PrescriptionDrugRepository
@@ -54,7 +52,6 @@ class UserWithdrawalServiceTest {
         userAllergyRepository = mock(UserAllergyRepository::class.java)
         userDeviceRepository = mock(UserDeviceRepository::class.java)
         familyRepository = mock(FamilyRepository::class.java)
-        familyRequestRepository = mock(FamilyRequestRepository::class.java)
         refreshTokenRepository = mock(RefreshTokenRepository::class.java)
         prescriptionRepository = mock(PrescriptionRepository::class.java)
         prescriptionDrugRepository = mock(PrescriptionDrugRepository::class.java)
@@ -70,7 +67,6 @@ class UserWithdrawalServiceTest {
             userAllergyRepository = userAllergyRepository,
             userDeviceRepository = userDeviceRepository,
             familyRepository = familyRepository,
-            familyRequestRepository = familyRequestRepository,
             refreshTokenRepository = refreshTokenRepository,
             prescriptionRepository = prescriptionRepository,
             prescriptionDrugRepository = prescriptionDrugRepository,
@@ -111,7 +107,6 @@ class UserWithdrawalServiceTest {
             prescriptionDrugTimeRepository,
             prescriptionDrugRepository,
             prescriptionRepository,
-            familyRequestRepository,
             familyRepository,
             userDeviceRepository,
             userAllergyRepository,
@@ -128,7 +123,6 @@ class UserWithdrawalServiceTest {
         order.verify(prescriptionDrugTimeRepository).deleteAllByUserId(1L)
         order.verify(prescriptionDrugRepository).deleteAllByUserId(1L)
         order.verify(prescriptionRepository).deleteAllByUserId(1L)
-        order.verify(familyRequestRepository).deleteAllBySenderIdOrReceiverId(1L)
         order.verify(familyRepository).deleteAllByUserIdOrConnectedUserId(1L)
         order.verify(userDeviceRepository).deleteAllByUserId(1L)
         order.verify(userAllergyRepository).deleteAllByUserId(1L)
@@ -159,7 +153,6 @@ class UserWithdrawalServiceTest {
             prescriptionDrugTimeRepository,
             prescriptionDrugRepository,
             prescriptionRepository,
-            familyRequestRepository,
             familyRepository,
             userDeviceRepository,
             userAllergyRepository,
@@ -185,7 +178,6 @@ class UserWithdrawalServiceTest {
             prescriptionDrugTimeRepository,
             prescriptionDrugRepository,
             prescriptionRepository,
-            familyRequestRepository,
             familyRepository,
             userDeviceRepository,
             userAllergyRepository,
@@ -216,7 +208,6 @@ class UserWithdrawalServiceTest {
             prescriptionDrugTimeRepository,
             prescriptionDrugRepository,
             prescriptionRepository,
-            familyRequestRepository,
             familyRepository,
             userDeviceRepository,
             userAllergyRepository,

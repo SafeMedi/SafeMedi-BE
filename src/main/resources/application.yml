@@ -29,6 +29,9 @@ jwt:
 app:
   test-login:
     enabled: false
+  family-invitation:
+    base-url: ${FAMILY_INVITATION_BASE_URL}
+    token-encryption-key: ${FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY}
 
 firebase:
   enabled: ${FIREBASE_ENABLED:false}

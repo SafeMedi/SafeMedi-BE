@@ -42,7 +42,7 @@ class FamilyInvitationQueryService(
         }
 
         val inviterName = invitation.inviter.nickname
-            ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+            ?: throw BusinessException(ErrorCode.FAMILY_INVITATION_INVITER_NAME_NOT_FOUND)
 
         return FamilyInvitationInfoResponse(
             inviterName = inviterName,

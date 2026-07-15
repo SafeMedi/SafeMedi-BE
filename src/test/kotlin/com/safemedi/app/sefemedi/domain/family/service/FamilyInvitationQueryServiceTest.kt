@@ -111,12 +111,12 @@ class FamilyInvitationQueryServiceTest {
     }
 
     @Test
-    fun `초대자 이름이 없으면 SYS_500 예외를 던진다`() {
+    fun `초대자 이름이 없으면 INV_005 예외를 던진다`() {
         given(familyInvitationRepository.findByTokenHash("token-hash")).willReturn(
             invitation(inviter = User(id = 2L, nickname = null, socialId = "kakao-456"))
         )
 
-        assertError(ErrorCode.INTERNAL_SERVER_ERROR) {
+        assertError(ErrorCode.FAMILY_INVITATION_INVITER_NAME_NOT_FOUND) {
             service.getInvitationInfo("kakao-123", "raw-token")
         }
     }

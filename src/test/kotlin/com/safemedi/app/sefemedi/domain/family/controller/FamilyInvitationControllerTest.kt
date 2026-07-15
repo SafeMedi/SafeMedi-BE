@@ -1,11 +1,13 @@
 package com.safemedi.app.sefemedi.domain.family.controller
 
+import com.safemedi.app.sefemedi.domain.family.dto.FamilyInvitationAcceptResponse
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyInvitationCreateResponse
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyInvitationInfoResponse
 import com.safemedi.app.sefemedi.domain.family.entity.FamilyInvitationStatus
 import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationCreateResult
 import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationCreateService
 import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationQueryService
+import com.safemedi.app.sefemedi.domain.family.service.FamilyInvitationAcceptService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -17,7 +19,8 @@ import java.time.Instant
 class FamilyInvitationControllerTest {
     private val service = mock(FamilyInvitationCreateService::class.java)
     private val queryService = mock(FamilyInvitationQueryService::class.java)
-    private val controller = FamilyInvitationController(service, queryService)
+    private val acceptService = mock(FamilyInvitationAcceptService::class.java)
+    private val controller = FamilyInvitationController(service, queryService, acceptService)
     private val authentication = mock(Authentication::class.java)
     private val response = FamilyInvitationCreateResponse(
         invitationId = 100L,
@@ -65,5 +68,21 @@ class FamilyInvitationControllerTest {
         val result = controller.getInvitationInfo(authentication, "invitation-token")
 
         assertEquals(infoResponse, result)
+    }
+
+    @Test
+    fun `acceptInvitation returns accepted family information`() {
+        val acceptResponse = FamilyInvitationAcceptResponse(
+            familyId = 12L,
+            name = "홍길동",
+            relation = "가족",
+            connectedAt = Instant.parse("2026-07-15T06:05:00Z"),
+        )
+        given(authentication.name).willReturn("kakao-123")
+        given(acceptService.accept("kakao-123", "invitation-token")).willReturn(acceptResponse)
+
+        val result = controller.acceptInvitation(authentication, "invitation-token")
+
+        assertEquals(acceptResponse, result)
     }
 }

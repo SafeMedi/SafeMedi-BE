@@ -9,6 +9,11 @@ import org.springframework.data.repository.query.Param
 
 interface FamilyRepository : JpaRepository<Family, Long> {
 
+    fun existsByUser_IdAndConnectedUser_Id(
+        userId: Long,
+        connectedUserId: Long,
+    ): Boolean
+
     @EntityGraph(attributePaths = ["connectedUser"], type = EntityGraph.EntityGraphType.FETCH)
     fun findAllByUser_IdOrderByCreatedAtAsc(
         userId: Long,

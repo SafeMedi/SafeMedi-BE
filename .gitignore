@@ -45,3 +45,5 @@ application-secret.yml
 firebase-adminsdk.json
 *firebase-adminsdk*.json
 *service-account*.json
+
+AGENTS.md

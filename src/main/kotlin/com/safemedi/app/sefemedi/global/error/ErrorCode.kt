@@ -152,6 +152,31 @@ enum class ErrorCode(
         "FAM_003",
         "연동되지 않은 가족 정보는 조회할 수 없습니다.",
     ),
+    FAMILY_INVITATION_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "INV_001",
+        "존재하지 않거나 유효하지 않은 가족 초대 링크입니다.",
+    ),
+    FAMILY_INVITATION_EXPIRED(
+        HttpStatus.GONE,
+        "INV_002",
+        "만료된 가족 초대 링크입니다.",
+    ),
+    FAMILY_INVITATION_ALREADY_USED(
+        HttpStatus.CONFLICT,
+        "INV_003",
+        "이미 사용된 가족 초대 링크입니다.",
+    ),
+    FAMILY_INVITATION_SELF_ACCESS(
+        HttpStatus.BAD_REQUEST,
+        "INV_004",
+        "자신이 생성한 가족 초대 링크는 사용할 수 없습니다.",
+    ),
+    FAMILY_INVITATION_INVITER_NAME_NOT_FOUND(
+        HttpStatus.CONFLICT,
+        "INV_005",
+        "초대자 이름을 확인할 수 없는 가족 초대 링크입니다.",
+    ),
     PRESCRIPTION_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "MED_005",

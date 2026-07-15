@@ -32,9 +32,10 @@ class FamilyInvitationAcceptService(
             ?: throw BusinessException(ErrorCode.INVALID_ACCESS_TOKEN)
         val invitation = familyInvitationRepository.findByTokenHashForUpdate(tokenHasher.hash(token))
             ?: throw BusinessException(ErrorCode.FAMILY_INVITATION_NOT_FOUND)
-        val now = LocalDateTime.now(clock)
+        val acceptedInstant = clock.instant()
+        val acceptedAt = LocalDateTime.ofInstant(acceptedInstant, ZoneOffset.UTC)
 
-        if (!invitation.expiresAt.isAfter(now)) {
+        if (!invitation.expiresAt.isAfter(acceptedAt)) {
             throw BusinessException(ErrorCode.FAMILY_INVITATION_EXPIRED)
         }
         if (invitation.status != FamilyInvitationStatus.PENDING) {
@@ -58,9 +59,9 @@ class FamilyInvitationAcceptService(
 
         invitation.accept(
             acceptedBy = acceptingUser,
-            acceptedAt = now,
+            acceptedAt = acceptedAt,
         )
-        val acceptingUserFamily = familyRepository.saveAndFlush(
+        val acceptingUserFamily = familyRepository.save(
             Family(
                 user = acceptingUser,
                 connectedUser = inviter,
@@ -82,7 +83,7 @@ class FamilyInvitationAcceptService(
             familyId = familyId,
             name = inviterName,
             relation = DEFAULT_RELATION,
-            connectedAt = now.toInstant(ZoneOffset.UTC),
+            connectedAt = acceptedInstant,
         )
     }
 
@@ -90,8 +91,7 @@ class FamilyInvitationAcceptService(
         acceptingUserId: Long,
         inviterId: Long,
     ): Boolean {
-        return familyRepository.existsByUser_IdAndConnectedUser_Id(acceptingUserId, inviterId) ||
-            familyRepository.existsByUser_IdAndConnectedUser_Id(inviterId, acceptingUserId)
+        return familyRepository.countConnectionsBetween(acceptingUserId, inviterId) > 0
     }
 
     private companion object {

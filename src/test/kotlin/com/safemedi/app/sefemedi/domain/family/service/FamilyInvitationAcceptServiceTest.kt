@@ -23,7 +23,7 @@ import org.mockito.Mockito.verifyNoInteractions
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.ZoneId
 
 class FamilyInvitationAcceptServiceTest {
     private lateinit var userRepository: UserRepository
@@ -47,7 +47,7 @@ class FamilyInvitationAcceptServiceTest {
             familyInvitationRepository = familyInvitationRepository,
             familyRepository = familyRepository,
             tokenHasher = tokenHasher,
-            clock = Clock.fixed(Instant.parse("2026-07-15T06:05:00Z"), ZoneOffset.UTC),
+            clock = Clock.fixed(Instant.parse("2026-07-15T06:05:00Z"), ZoneId.of("Asia/Seoul")),
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(acceptingUser)
@@ -57,34 +57,39 @@ class FamilyInvitationAcceptServiceTest {
     @Test
     fun `초대를 수락하면 양방향 가족 관계와 수락 정보를 저장한다`() {
         val invitation = invitation()
-        val acceptingFamilyCaptor = ArgumentCaptor.forClass(Family::class.java)
-        val inviterFamilyCaptor = ArgumentCaptor.forClass(Family::class.java)
+        val familyCaptor = ArgumentCaptor.forClass(Family::class.java)
 
         given(familyInvitationRepository.findByTokenHashForUpdate("token-hash")).willReturn(invitation)
-        given(familyRepository.existsByUser_IdAndConnectedUser_Id(1L, 2L)).willReturn(false)
-        given(familyRepository.existsByUser_IdAndConnectedUser_Id(2L, 1L)).willReturn(false)
-        given(familyRepository.saveAndFlush(acceptingFamilyCaptor.capture())).willAnswer {
-            Family(
-                id = 12L,
-                user = acceptingFamilyCaptor.value.user,
-                connectedUser = acceptingFamilyCaptor.value.connectedUser,
-                relation = acceptingFamilyCaptor.value.relation,
-            )
+        given(familyRepository.countConnectionsBetween(1L, 2L)).willReturn(0L)
+        given(familyRepository.save(familyCaptor.capture())).willAnswer { invocation ->
+            val family = invocation.getArgument<Family>(0)
+            if (family.user.id == acceptingUser.id) {
+                Family(
+                    id = 12L,
+                    user = family.user,
+                    connectedUser = family.connectedUser,
+                    relation = family.relation,
+                )
+            } else {
+                family
+            }
         }
-        given(familyRepository.save(inviterFamilyCaptor.capture())).willAnswer { inviterFamilyCaptor.value }
 
         val response = service.accept("kakao-123", "raw-token")
+        val savedFamilies = familyCaptor.allValues
+        val acceptingUserFamily = savedFamilies[0]
+        val inviterFamily = savedFamilies[1]
 
         assertEquals(12L, response.familyId)
         assertEquals("홍길동", response.name)
         assertEquals("가족", response.relation)
         assertEquals(Instant.parse("2026-07-15T06:05:00Z"), response.connectedAt)
-        assertEquals(acceptingUser, acceptingFamilyCaptor.value.user)
-        assertEquals(inviter, acceptingFamilyCaptor.value.connectedUser)
-        assertEquals("가족", acceptingFamilyCaptor.value.relation)
-        assertEquals(inviter, inviterFamilyCaptor.value.user)
-        assertEquals(acceptingUser, inviterFamilyCaptor.value.connectedUser)
-        assertEquals("가족", inviterFamilyCaptor.value.relation)
+        assertEquals(acceptingUser, acceptingUserFamily.user)
+        assertEquals(inviter, acceptingUserFamily.connectedUser)
+        assertEquals("가족", acceptingUserFamily.relation)
+        assertEquals(inviter, inviterFamily.user)
+        assertEquals(acceptingUser, inviterFamily.connectedUser)
+        assertEquals("가족", inviterFamily.relation)
         assertEquals(FamilyInvitationStatus.ACCEPTED, invitation.status)
         assertEquals(acceptingUser, invitation.acceptedBy)
         assertEquals(now, invitation.acceptedAt)
@@ -157,14 +162,13 @@ class FamilyInvitationAcceptServiceTest {
     @Test
     fun `이미 가족 관계이면 INV_006 예외를 던진다`() {
         given(familyInvitationRepository.findByTokenHashForUpdate("token-hash")).willReturn(invitation())
-        given(familyRepository.existsByUser_IdAndConnectedUser_Id(1L, 2L)).willReturn(true)
+        given(familyRepository.countConnectionsBetween(1L, 2L)).willReturn(1L)
 
         assertError(ErrorCode.FAMILY_INVITATION_ALREADY_CONNECTED) {
             service.accept("kakao-123", "raw-token")
         }
 
         verify(familyRepository, never()).save(any(Family::class.java))
-        verify(familyRepository, never()).saveAndFlush(any(Family::class.java))
     }
 
     private fun invitation(

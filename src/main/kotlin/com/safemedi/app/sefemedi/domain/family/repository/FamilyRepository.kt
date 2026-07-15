@@ -9,6 +9,19 @@ import org.springframework.data.repository.query.Param
 
 interface FamilyRepository : JpaRepository<Family, Long> {
 
+    @Query(
+        """
+        select count(f)
+        from Family f
+        where (f.user.id = :firstUserId and f.connectedUser.id = :secondUserId)
+           or (f.user.id = :secondUserId and f.connectedUser.id = :firstUserId)
+        """
+    )
+    fun countConnectionsBetween(
+        @Param("firstUserId") firstUserId: Long,
+        @Param("secondUserId") secondUserId: Long,
+    ): Long
+
     @EntityGraph(attributePaths = ["connectedUser"], type = EntityGraph.EntityGraphType.FETCH)
     fun findAllByUser_IdOrderByCreatedAtAsc(
         userId: Long,

@@ -177,6 +177,11 @@ enum class ErrorCode(
         "INV_005",
         "초대자 이름을 확인할 수 없는 가족 초대 링크입니다.",
     ),
+    FAMILY_INVITATION_ALREADY_CONNECTED(
+        HttpStatus.CONFLICT,
+        "INV_006",
+        "이미 가족으로 연동된 사용자입니다.",
+    ),
     PRESCRIPTION_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "MED_005",

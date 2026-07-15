@@ -34,8 +34,24 @@ class FamilyInvitation(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    val status: FamilyInvitationStatus = FamilyInvitationStatus.PENDING,
+    var status: FamilyInvitationStatus = FamilyInvitationStatus.PENDING,
 
     @Column(name = "expires_at", nullable = false)
     val expiresAt: LocalDateTime,
-) : BaseTimeEntity()
+
+    @Column(name = "accepted_at")
+    var acceptedAt: LocalDateTime? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "accepted_by")
+    var acceptedBy: User? = null,
+) : BaseTimeEntity() {
+    fun accept(
+        acceptedBy: User,
+        acceptedAt: LocalDateTime,
+    ) {
+        status = FamilyInvitationStatus.ACCEPTED
+        this.acceptedBy = acceptedBy
+        this.acceptedAt = acceptedAt
+    }
+}

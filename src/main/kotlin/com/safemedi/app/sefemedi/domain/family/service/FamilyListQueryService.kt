@@ -34,15 +34,18 @@ class FamilyListQueryService(
                 )
             }
 
-        return FamilyListResponse(
-            families = listOf(
+        val families = buildList(connectedFamilies.size + 1) {
+            add(
                 FamilyListItemResponse(
                     familyId = null,
                     name = currentUserName,
                     relation = SELF_RELATION,
                 )
-            ) + connectedFamilies,
-        )
+            )
+            addAll(connectedFamilies)
+        }
+
+        return FamilyListResponse(families = families)
     }
 
     private companion object {

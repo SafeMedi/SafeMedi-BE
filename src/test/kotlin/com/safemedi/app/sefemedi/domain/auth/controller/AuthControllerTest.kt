@@ -61,4 +61,17 @@ class AuthControllerTest {
 
         assertEquals(ErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
     }
+
+    @Test
+    fun `reissue rejects blank refresh token`() {
+        val exception = assertThrows(BusinessException::class.java) {
+            authController.reissue(
+                TokenReissueRequest(
+                    refreshToken = "   ",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
+    }
 }

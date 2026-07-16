@@ -20,6 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.times
 
 class AuthServiceTest {
 
@@ -120,15 +121,7 @@ class AuthServiceTest {
         assertEquals("new-access-token", response.accessToken)
         assertEquals("new-refresh-token", response.refreshToken)
         assertEquals("new-refresh-token", storedRefreshToken.token)
-    }
-
-    @Test
-    fun `reissue throws REFRESH_TOKEN_REQUIRED when refresh token is blank`() {
-        val exception = assertThrows(BusinessException::class.java) {
-            authService.reissue("   ")
-        }
-
-        assertEquals(ErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
+        verify(jwtProvider, times(1)).parseToken(refreshToken)
     }
 
     @Test

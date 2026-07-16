@@ -56,15 +56,10 @@ class AuthService(
 
     @Transactional
     fun reissue(
-        refreshToken: String?
+        refreshToken: String
     ): TokenResponse {
-        val normalizedRefreshToken = refreshToken?.trim()
-        if (normalizedRefreshToken.isNullOrBlank()) {
-            throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
-        }
-
         val kakaoId =
-            when (val parseResult = jwtProvider.parseToken(normalizedRefreshToken)) {
+            when (val parseResult = jwtProvider.parseToken(refreshToken)) {
                 is TokenParseResult.Success -> parseResult.subject
                 TokenParseResult.Expired -> throw BusinessException(ErrorCode.EXPIRED_REFRESH_TOKEN)
                 TokenParseResult.Invalid -> throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
@@ -81,7 +76,7 @@ class AuthService(
             )
                 ?: throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
 
-        if (savedRefreshToken.token != normalizedRefreshToken) {
+        if (savedRefreshToken.token != refreshToken) {
             throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
         }
 

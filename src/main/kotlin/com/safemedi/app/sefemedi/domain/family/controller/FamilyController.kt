@@ -1,8 +1,10 @@
 package com.safemedi.app.sefemedi.domain.family.controller
 
+import com.safemedi.app.sefemedi.domain.family.dto.FamilyListResponse
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyRelationUpdateRequest
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyRelationUpdateResponse
 import com.safemedi.app.sefemedi.domain.family.service.FamilyDisconnectService
+import com.safemedi.app.sefemedi.domain.family.service.FamilyListQueryService
 import com.safemedi.app.sefemedi.domain.family.service.FamilyRelationUpdateService
 import com.safemedi.app.sefemedi.domain.user.dto.MedicalSummaryResponse
 import com.safemedi.app.sefemedi.domain.user.service.MedicalSummaryService
@@ -23,7 +25,13 @@ class FamilyController(
     private val medicalSummaryService: MedicalSummaryService,
     private val familyRelationUpdateService: FamilyRelationUpdateService,
     private val familyDisconnectService: FamilyDisconnectService,
+    private val familyListQueryService: FamilyListQueryService,
 ) {
+
+    @GetMapping
+    fun getFamilies(authentication: Authentication): FamilyListResponse {
+        return familyListQueryService.getFamilies(authentication.name)
+    }
 
     @GetMapping("/{familyId}/medical-summary")
     fun getFamilyMedicalSummary(

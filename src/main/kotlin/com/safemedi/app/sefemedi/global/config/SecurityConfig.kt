@@ -55,6 +55,7 @@ class SecurityConfig(
                     "/api/v1/prescriptions/analyze",
                     "/api/v1/prescriptions",
                     "/api/v1/prescriptions/**",
+                    "/api/v1/families",
                     "/api/v1/families/**",
                     "/api/v1/family-invitations",
                     "/api/v1/family-invitations/**",

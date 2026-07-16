@@ -13,7 +13,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
-import com.safemedi.app.sefemedi.global.jwt.TokenValidationStatus
+import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.Locale
@@ -63,14 +63,12 @@ class AuthService(
             throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
         }
 
-        when (jwtProvider.classifyToken(normalizedRefreshToken)) {
-            TokenValidationStatus.EXPIRED -> throw BusinessException(ErrorCode.EXPIRED_REFRESH_TOKEN)
-            TokenValidationStatus.INVALID -> throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
-            TokenValidationStatus.VALID -> Unit
-        }
-
         val kakaoId =
-            jwtProvider.getKakaoId(normalizedRefreshToken)
+            when (val parseResult = jwtProvider.parseToken(normalizedRefreshToken)) {
+                is TokenParseResult.Success -> parseResult.subject
+                TokenParseResult.Expired -> throw BusinessException(ErrorCode.EXPIRED_REFRESH_TOKEN)
+                TokenParseResult.Invalid -> throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
+            }
 
         val user =
             userRepository.findBySocialId(

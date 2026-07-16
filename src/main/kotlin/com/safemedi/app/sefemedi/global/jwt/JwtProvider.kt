@@ -9,10 +9,14 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.*
 
-enum class TokenValidationStatus {
-    VALID,
-    EXPIRED,
-    INVALID,
+sealed interface TokenParseResult {
+    data class Success(
+        val subject: String,
+    ) : TokenParseResult
+
+    object Expired : TokenParseResult
+
+    object Invalid : TokenParseResult
 }
 
 @Component
@@ -51,30 +55,25 @@ class JwtProvider(
         )
     }
 
-    fun getKakaoId(
-        token: String
-    ): String {
-        return getClaims(token).subject
-    }
-
     fun validateToken(
         token: String
     ): Boolean {
-        return classifyToken(token) == TokenValidationStatus.VALID
+        return parseToken(token) is TokenParseResult.Success
     }
 
-    fun classifyToken(
+    fun parseToken(
         token: String
-    ): TokenValidationStatus {
+    ): TokenParseResult {
         return try {
-            getClaims(token)
-            TokenValidationStatus.VALID
+            TokenParseResult.Success(
+                subject = getClaims(token).subject
+            )
         } catch (_: ExpiredJwtException) {
-            TokenValidationStatus.EXPIRED
+            TokenParseResult.Expired
         } catch (_: JwtException) {
-            TokenValidationStatus.INVALID
+            TokenParseResult.Invalid
         } catch (_: IllegalArgumentException) {
-            TokenValidationStatus.INVALID
+            TokenParseResult.Invalid
         }
     }
 

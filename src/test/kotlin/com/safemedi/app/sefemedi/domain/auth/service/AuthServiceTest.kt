@@ -11,7 +11,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
-import com.safemedi.app.sefemedi.global.jwt.TokenValidationStatus
+import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -106,8 +106,9 @@ class AuthServiceTest {
             token = refreshToken,
         )
 
-        given(jwtProvider.classifyToken(refreshToken)).willReturn(TokenValidationStatus.VALID)
-        given(jwtProvider.getKakaoId(refreshToken)).willReturn("4903042739")
+        given(jwtProvider.parseToken(refreshToken)).willReturn(
+            TokenParseResult.Success("4903042739")
+        )
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(refreshTokenRepository.findByUser_Id(1L)).willReturn(storedRefreshToken)
         given(jwtProvider.createAccessToken("4903042739")).willReturn("new-access-token")
@@ -133,7 +134,7 @@ class AuthServiceTest {
     @Test
     fun `reissue throws INVALID_REFRESH_TOKEN when refresh token is malformed`() {
         val refreshToken = "refresh-token"
-        given(jwtProvider.classifyToken(refreshToken)).willReturn(TokenValidationStatus.INVALID)
+        given(jwtProvider.parseToken(refreshToken)).willReturn(TokenParseResult.Invalid)
 
         val exception = assertThrows(BusinessException::class.java) {
             authService.reissue(refreshToken)
@@ -145,7 +146,7 @@ class AuthServiceTest {
     @Test
     fun `reissue throws EXPIRED_REFRESH_TOKEN when refresh token is expired`() {
         val refreshToken = "refresh-token"
-        given(jwtProvider.classifyToken(refreshToken)).willReturn(TokenValidationStatus.EXPIRED)
+        given(jwtProvider.parseToken(refreshToken)).willReturn(TokenParseResult.Expired)
 
         val exception = assertThrows(BusinessException::class.java) {
             authService.reissue(refreshToken)

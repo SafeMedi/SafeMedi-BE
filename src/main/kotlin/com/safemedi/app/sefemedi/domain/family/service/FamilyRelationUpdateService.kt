@@ -39,14 +39,14 @@ class FamilyRelationUpdateService(
         val familyName = family.connectedUser.nickname
             ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
         family.relation = relation
-        val updatedFamily = familyRepository.saveAndFlush(family)
+        familyRepository.flush()
 
         return FamilyRelationUpdateResponse(
-            familyId = updatedFamily.id
+            familyId = family.id
                 ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
             name = familyName,
-            relation = updatedFamily.relation,
-            updatedAt = updatedFamily.updatedAt?.toInstant(ZoneOffset.UTC)
+            relation = family.relation,
+            updatedAt = family.updatedAt?.toInstant(ZoneOffset.UTC)
                 ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
         )
     }

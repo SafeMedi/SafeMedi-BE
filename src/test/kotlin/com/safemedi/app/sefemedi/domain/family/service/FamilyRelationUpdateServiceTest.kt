@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.any
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
@@ -43,10 +43,10 @@ class FamilyRelationUpdateServiceTest {
     fun `가족 호칭의 앞뒤 공백을 제거해 현재 사용자의 관계만 수정한다`() {
         val family = family()
         given(familyRepository.findWithConnectedUserById(12L)).willReturn(family)
-        given(familyRepository.saveAndFlush(family)).willAnswer {
+        doAnswer {
             setUpdatedAt(family, LocalDateTime.of(2026, 7, 15, 6, 10))
-            family
-        }
+            null
+        }.`when`(familyRepository).flush()
 
         val response = service.update(
             socialId = "kakao-123",
@@ -59,7 +59,7 @@ class FamilyRelationUpdateServiceTest {
         assertEquals("김영희", response.name)
         assertEquals("어머니", response.relation)
         assertEquals(Instant.parse("2026-07-15T06:10:00Z"), response.updatedAt)
-        verify(familyRepository).saveAndFlush(family)
+        verify(familyRepository).flush()
     }
 
     @Test
@@ -94,10 +94,10 @@ class FamilyRelationUpdateServiceTest {
         val family = family()
         val relation = "가".repeat(20)
         given(familyRepository.findWithConnectedUserById(12L)).willReturn(family)
-        given(familyRepository.saveAndFlush(family)).willAnswer {
+        doAnswer {
             setUpdatedAt(family, LocalDateTime.of(2026, 7, 15, 6, 10))
-            family
-        }
+            null
+        }.`when`(familyRepository).flush()
 
         val response = service.update(
             "kakao-123",
@@ -128,7 +128,7 @@ class FamilyRelationUpdateServiceTest {
             service.update("kakao-123", 12L, FamilyRelationUpdateRequest("어머니"))
         }
 
-        verify(familyRepository, never()).saveAndFlush(any(Family::class.java))
+        verify(familyRepository, never()).flush()
     }
 
     @Test

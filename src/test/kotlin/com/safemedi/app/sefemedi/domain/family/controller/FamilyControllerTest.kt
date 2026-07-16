@@ -1,8 +1,11 @@
 package com.safemedi.app.sefemedi.domain.family.controller
 
+import com.safemedi.app.sefemedi.domain.family.dto.FamilyListItemResponse
+import com.safemedi.app.sefemedi.domain.family.dto.FamilyListResponse
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyRelationUpdateRequest
 import com.safemedi.app.sefemedi.domain.family.dto.FamilyRelationUpdateResponse
 import com.safemedi.app.sefemedi.domain.family.service.FamilyDisconnectService
+import com.safemedi.app.sefemedi.domain.family.service.FamilyListQueryService
 import com.safemedi.app.sefemedi.domain.family.service.FamilyRelationUpdateService
 import com.safemedi.app.sefemedi.domain.user.dto.MedicalSummaryResponse
 import com.safemedi.app.sefemedi.domain.user.service.MedicalSummaryService
@@ -21,11 +24,34 @@ class FamilyControllerTest {
     private val medicalSummaryService = mock(MedicalSummaryService::class.java)
     private val familyRelationUpdateService = mock(FamilyRelationUpdateService::class.java)
     private val familyDisconnectService = mock(FamilyDisconnectService::class.java)
+    private val familyListQueryService = mock(FamilyListQueryService::class.java)
     private val controller = FamilyController(
         medicalSummaryService,
         familyRelationUpdateService,
         familyDisconnectService,
+        familyListQueryService,
     )
+
+    @Test
+    fun `가족 목록 조회 요청을 인증 사용자로 서비스에 전달한다`() {
+        val authentication = mock(Authentication::class.java)
+        val response = FamilyListResponse(
+            families = listOf(
+                FamilyListItemResponse(
+                    familyId = null,
+                    name = "홍길동",
+                    relation = "본인",
+                )
+            )
+        )
+        given(authentication.name).willReturn("kakao-123")
+        given(familyListQueryService.getFamilies("kakao-123")).willReturn(response)
+
+        val result = controller.getFamilies(authentication)
+
+        assertEquals(response, result)
+        verify(familyListQueryService).getFamilies("kakao-123")
+    }
 
     @Test
     fun `가족 의료정보 조회 요청을 인증 사용자와 가족 ID로 서비스에 전달한다`() {

@@ -110,7 +110,7 @@ enum class ErrorCode(
     INVALID_FAMILY_RELATION(
         HttpStatus.BAD_REQUEST,
         "VAL_008",
-        "가족 호칭은 1자 이상 50자 이하로 입력해야 합니다.",
+        "가족 호칭은 1자 이상 20자 이하로 입력해야 합니다.",
     ),
     INVALID_PRESCRIPTION_DATE(
         HttpStatus.BAD_REQUEST,

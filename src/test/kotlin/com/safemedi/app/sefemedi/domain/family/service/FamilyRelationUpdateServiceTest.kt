@@ -81,12 +81,31 @@ class FamilyRelationUpdateServiceTest {
     }
 
     @Test
-    fun `호칭이 50자를 초과하면 VAL_008 예외를 던진다`() {
+    fun `호칭이 20자를 초과하면 VAL_008 예외를 던진다`() {
         assertError(ErrorCode.INVALID_FAMILY_RELATION) {
-            service.update("kakao-123", 12L, FamilyRelationUpdateRequest("가".repeat(51)))
+            service.update("kakao-123", 12L, FamilyRelationUpdateRequest("가".repeat(21)))
         }
 
         verifyNoInteractions(familyRepository)
+    }
+
+    @Test
+    fun `호칭이 20자이면 수정할 수 있다`() {
+        val family = family()
+        val relation = "가".repeat(20)
+        given(familyRepository.findWithConnectedUserById(12L)).willReturn(family)
+        given(familyRepository.saveAndFlush(family)).willAnswer {
+            setUpdatedAt(family, LocalDateTime.of(2026, 7, 15, 6, 10))
+            family
+        }
+
+        val response = service.update(
+            "kakao-123",
+            12L,
+            FamilyRelationUpdateRequest(relation),
+        )
+
+        assertEquals(relation, response.relation)
     }
 
     @Test

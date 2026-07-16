@@ -52,6 +52,6 @@ class FamilyRelationUpdateService(
     }
 
     private companion object {
-        const val MAX_RELATION_LENGTH = 50
+        const val MAX_RELATION_LENGTH = 20
     }
 }

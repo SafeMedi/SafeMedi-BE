@@ -38,7 +38,7 @@ class FamilyDisconnectService(
             secondUserId = secondUserId,
         )
 
-        if (connections.none { it.id == familyId && it.user.id == currentUserId }) {
+        if (connections.none { it.id == familyId }) {
             throw BusinessException(ErrorCode.FAMILY_NOT_FOUND)
         }
 

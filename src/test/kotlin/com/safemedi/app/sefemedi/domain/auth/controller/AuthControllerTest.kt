@@ -2,6 +2,7 @@ package com.safemedi.app.sefemedi.domain.auth.controller
 
 import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
 import com.safemedi.app.sefemedi.domain.auth.dto.LogoutResponse
+import com.safemedi.app.sefemedi.domain.auth.dto.TokenReissueRequest
 import com.safemedi.app.sefemedi.domain.auth.service.AuthService
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
@@ -50,5 +51,14 @@ class AuthControllerTest {
         }
 
         assertEquals(ErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+
+    @Test
+    fun `reissue rejects missing refresh token`() {
+        val exception = assertThrows(BusinessException::class.java) {
+            authController.reissue(TokenReissueRequest())
+        }
+
+        assertEquals(ErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
     }
 }

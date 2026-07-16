@@ -227,6 +227,21 @@ enum class ErrorCode(
         "AUTH_001",
         "유효하지 않은 토큰입니다.",
     ),
+    REFRESH_TOKEN_REQUIRED(
+        HttpStatus.BAD_REQUEST,
+        "VAL_001",
+        "필수 입력값(refreshToken)이 누락되었거나 비어있습니다.",
+    ),
+    INVALID_REFRESH_TOKEN(
+        HttpStatus.UNAUTHORIZED,
+        "AUTH_002",
+        "유효하지 않은 refreshToken입니다.",
+    ),
+    EXPIRED_REFRESH_TOKEN(
+        HttpStatus.UNAUTHORIZED,
+        "AUTH_003",
+        "만료된 refreshToken입니다. 다시 로그인해주세요.",
+    ),
     UNSUPPORTED_SOCIAL_LOGIN_PROVIDER(
         HttpStatus.BAD_REQUEST,
         "AUTH_002",

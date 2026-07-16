@@ -40,8 +40,9 @@ class AuthController(
     fun reissue(
         @RequestBody request: TokenReissueRequest
     ): TokenResponse {
+        val refreshToken = requireRefreshToken(request.refreshToken)
         return authService.reissue(
-            request.refreshToken
+            refreshToken
         )
     }
 
@@ -72,6 +73,17 @@ class AuthController(
         }
 
         return socialId
+    }
+
+    private fun requireRefreshToken(
+        refreshToken: String?,
+    ): String {
+        val normalizedRefreshToken = refreshToken?.trim()
+        if (normalizedRefreshToken.isNullOrBlank()) {
+            throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
+        }
+
+        return normalizedRefreshToken
     }
 
     private companion object {

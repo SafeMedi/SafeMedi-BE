@@ -55,12 +55,6 @@ class JwtProvider(
         )
     }
 
-    fun validateToken(
-        token: String
-    ): Boolean {
-        return parseToken(token) is TokenParseResult.Success
-    }
-
     fun parseToken(
         token: String
     ): TokenParseResult {

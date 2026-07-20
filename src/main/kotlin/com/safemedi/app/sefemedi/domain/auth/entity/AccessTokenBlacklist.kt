@@ -1,3 +1,5 @@
+@file:Suppress("SqlResolve")
+
 package com.safemedi.app.sefemedi.domain.auth.entity
 
 import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity

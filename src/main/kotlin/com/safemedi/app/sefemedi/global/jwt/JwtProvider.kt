@@ -50,6 +50,12 @@ class JwtProvider(
         return getClaims(token).subject
     }
 
+    fun getExpiration(
+        token: String
+    ): Date {
+        return getClaims(token).expiration
+    }
+
     fun validateToken(
         token: String
     ): Boolean {

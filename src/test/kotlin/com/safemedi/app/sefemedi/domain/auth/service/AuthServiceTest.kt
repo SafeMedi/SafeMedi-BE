@@ -1,8 +1,10 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
 import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
+import com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist
 import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
 import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
+import com.safemedi.app.sefemedi.domain.auth.repository.AccessTokenBlacklistRepository
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.entity.UserDevice
@@ -12,6 +14,7 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -19,12 +22,14 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import java.util.Date
 
 class AuthServiceTest {
 
     private lateinit var jwtProvider: JwtProvider
     private lateinit var userRepository: UserRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
+    private lateinit var accessTokenBlacklistRepository: AccessTokenBlacklistRepository
     private lateinit var socialLoginVerifier: SocialLoginVerifier
     private lateinit var userDeviceRepository: UserDeviceRepository
     private lateinit var authService: AuthService
@@ -34,6 +39,7 @@ class AuthServiceTest {
         jwtProvider = mock(JwtProvider::class.java)
         userRepository = mock(UserRepository::class.java)
         refreshTokenRepository = mock(RefreshTokenRepository::class.java)
+        accessTokenBlacklistRepository = mock(AccessTokenBlacklistRepository::class.java)
         userDeviceRepository = mock(UserDeviceRepository::class.java)
         socialLoginVerifier = object : SocialLoginVerifier {
             override fun resolveSocialId(accessToken: String): String {
@@ -45,8 +51,25 @@ class AuthServiceTest {
             jwtProvider = jwtProvider,
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
+            accessTokenBlacklistRepository = accessTokenBlacklistRepository,
             socialLoginVerifier = socialLoginVerifier,
             userDeviceRepository = userDeviceRepository,
+        )
+    }
+
+    private fun givenValidLogoutAccessToken(
+        socialId: String = "4903042739",
+        accessToken: String = "access-token",
+    ) {
+        given(jwtProvider.validateToken(accessToken)).willReturn(true)
+        given(jwtProvider.getKakaoId(accessToken)).willReturn(socialId)
+        given(jwtProvider.getExpiration(accessToken)).willReturn(Date(System.currentTimeMillis() + 60_000))
+        given(accessTokenBlacklistRepository.existsByToken(accessToken)).willReturn(false)
+        given(accessTokenBlacklistRepository.save(any(AccessTokenBlacklist::class.java))).willReturn(
+            AccessTokenBlacklist(
+                token = accessToken,
+                expiresAt = java.time.LocalDateTime.now(),
+            )
         )
     }
 
@@ -58,7 +81,7 @@ class AuthServiceTest {
             isTutorialCompleted = false,
         )
 
-        given(userRepository.findBySocialId("4903042739")).willReturn(null)
+        given(userRepository.findBySocialIdIncludingDeleted("4903042739")).willReturn(null)
         given(userRepository.save(any(User::class.java))).willReturn(savedUser)
         given(jwtProvider.createAccessToken("4903042739")).willReturn("app-access-token")
         given(jwtProvider.createRefreshToken("4903042739")).willReturn("app-refresh-token")
@@ -121,7 +144,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `logout deactivates current user's active device token`() {
+    fun `logout deactivates current user's active device token and discards tokens`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -136,9 +159,11 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+        givenValidLogoutAccessToken()
 
         val response = authService.logout(
             socialId = "4903042739",
+            accessToken = "access-token",
             request = LogoutRequest(
                 deviceToken = "device-token",
             ),
@@ -146,6 +171,8 @@ class AuthServiceTest {
 
         assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
         assertEquals(false, userDevice.isActive)
+        verify(refreshTokenRepository).deleteByUserId(1L)
+        verify(accessTokenBlacklistRepository).save(any(AccessTokenBlacklist::class.java))
     }
 
     @Test
@@ -164,9 +191,11 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+        givenValidLogoutAccessToken()
 
         val response = authService.logout(
             socialId = "4903042739",
+            accessToken = "access-token",
             request = LogoutRequest(
                 deviceToken = "device-token",
             ),
@@ -181,6 +210,7 @@ class AuthServiceTest {
         val exception = assertThrows(BusinessException::class.java) {
             authService.logout(
                 socialId = "4903042739",
+                accessToken = "access-token",
                 request = LogoutRequest(
                     deviceToken = " ",
                 ),
@@ -195,6 +225,7 @@ class AuthServiceTest {
         val exception = assertThrows(BusinessException::class.java) {
             authService.logout(
                 socialId = "4903042739",
+                accessToken = "access-token",
                 request = LogoutRequest(
                     deviceToken = "a".repeat(513),
                 ),
@@ -213,10 +244,12 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(null)
+        givenValidLogoutAccessToken()
 
         val exception = assertThrows(BusinessException::class.java) {
             authService.logout(
                 socialId = "4903042739",
+                accessToken = "access-token",
                 request = LogoutRequest(
                     deviceToken = "device-token",
                 ),
@@ -246,10 +279,12 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(currentUser)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+        givenValidLogoutAccessToken()
 
         val exception = assertThrows(BusinessException::class.java) {
             authService.logout(
                 socialId = "4903042739",
+                accessToken = "access-token",
                 request = LogoutRequest(
                     deviceToken = "device-token",
                 ),
@@ -260,7 +295,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `login rejects withdrawn user`() {
+    fun `login reactivates withdrawn user and returns JWT tokens`() {
         val withdrawnUser = User(
             id = 1L,
             socialId = "4903042739",
@@ -268,14 +303,26 @@ class AuthServiceTest {
         )
 
         given(userRepository.findBySocialIdIncludingDeleted("4903042739")).willReturn(withdrawnUser)
-
-        val exception = assertThrows(BusinessException::class.java) {
-            authService.login(
-                provider = "kakao",
-                accessToken = "kakao-access-token",
+        given(userRepository.save(withdrawnUser)).willReturn(withdrawnUser)
+        given(jwtProvider.createAccessToken("4903042739")).willReturn("app-access-token")
+        given(jwtProvider.createRefreshToken("4903042739")).willReturn("app-refresh-token")
+        given(refreshTokenRepository.findByUser_Id(1L)).willReturn(null)
+        given(refreshTokenRepository.save(any(RefreshToken::class.java))).willReturn(
+            RefreshToken(
+                user = withdrawnUser,
+                token = "app-refresh-token",
             )
-        }
+        )
 
-        assertEquals(ErrorCode.USER_ALREADY_WITHDRAWN, exception.errorCode)
+        val response = authService.login(
+            provider = "kakao",
+            accessToken = "kakao-access-token",
+        )
+
+        assertEquals("app-access-token", response.accessToken)
+        assertEquals("app-refresh-token", response.refreshToken)
+        assertNull(withdrawnUser.deletedAt)
+        assertEquals(false, response.isTutorialCompleted)
+        verify(userRepository).save(withdrawnUser)
     }
 }

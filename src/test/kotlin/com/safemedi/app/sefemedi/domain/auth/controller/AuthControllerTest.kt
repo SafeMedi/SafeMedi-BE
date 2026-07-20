@@ -28,12 +28,12 @@ class AuthControllerTest {
 
         given(authentication.name).willReturn("4903042739")
         given(authentication.isAuthenticated).willReturn(true)
-        given(authService.logout("4903042739", request)).willReturn(response)
+        given(authService.logout("4903042739", "access-token", request)).willReturn(response)
 
-        val result = authController.logout(authentication, request)
+        val result = authController.logout(authentication, "Bearer access-token", request)
 
         assertEquals(response, result)
-        verify(authService).logout("4903042739", request)
+        verify(authService).logout("4903042739", "access-token", request)
     }
 
     @Test
@@ -46,7 +46,7 @@ class AuthControllerTest {
         given(authentication.isAuthenticated).willReturn(false)
 
         val exception = assertThrows(BusinessException::class.java) {
-            authController.logout(authentication, request)
+            authController.logout(authentication, "Bearer access-token", request)
         }
 
         assertEquals(ErrorCode.INVALID_TOKEN, exception.errorCode)

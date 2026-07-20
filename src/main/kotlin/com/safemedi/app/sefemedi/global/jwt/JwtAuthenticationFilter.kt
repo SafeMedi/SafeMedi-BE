@@ -1,5 +1,6 @@
 package com.safemedi.app.sefemedi.global.jwt
 
+import com.safemedi.app.sefemedi.domain.auth.repository.AccessTokenBlacklistRepository
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -11,7 +12,8 @@ import org.springframework.web.filter.OncePerRequestFilter
 @Component
 class JwtAuthenticationFilter(
 
-    private val jwtProvider: JwtProvider
+    private val jwtProvider: JwtProvider,
+    private val accessTokenBlacklistRepository: AccessTokenBlacklistRepository,
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(
@@ -24,6 +26,7 @@ class JwtAuthenticationFilter(
         if (
             token != null &&
             jwtProvider.validateToken(token) &&
+            !accessTokenBlacklistRepository.existsByToken(token) &&
             SecurityContextHolder.getContext().authentication == null
         ) {
             val kakaoId =

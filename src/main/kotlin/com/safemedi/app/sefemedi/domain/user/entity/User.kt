@@ -39,4 +39,9 @@ class User(
         isTutorialCompleted = false
         deletedAt = withdrawnAt
     }
+
+    fun reactivate() {
+        deletedAt = null
+        isTutorialCompleted = false
+    }
 }

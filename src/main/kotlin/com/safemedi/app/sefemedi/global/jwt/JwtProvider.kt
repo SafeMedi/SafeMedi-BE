@@ -3,10 +3,21 @@ package com.safemedi.app.sefemedi.global.jwt
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.*
+
+sealed interface TokenParseResult {
+    data class Success(
+        val subject: String,
+    ) : TokenParseResult
+
+    object Expired : TokenParseResult
+
+    object Invalid : TokenParseResult
+}
 
 @Component
 class JwtProvider(
@@ -44,22 +55,19 @@ class JwtProvider(
         )
     }
 
-    fun getKakaoId(
+    fun parseToken(
         token: String
-    ): String {
-        return getClaims(token).subject
-    }
-
-    fun validateToken(
-        token: String
-    ): Boolean {
+    ): TokenParseResult {
         return try {
-            getClaims(token)
-            true
+            TokenParseResult.Success(
+                subject = getClaims(token).subject
+            )
+        } catch (_: ExpiredJwtException) {
+            TokenParseResult.Expired
         } catch (_: JwtException) {
-            false
+            TokenParseResult.Invalid
         } catch (_: IllegalArgumentException) {
-            false
+            TokenParseResult.Invalid
         }
     }
 

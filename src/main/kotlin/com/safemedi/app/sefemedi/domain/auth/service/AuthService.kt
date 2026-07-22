@@ -13,6 +13,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
+import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.Locale
@@ -57,26 +58,26 @@ class AuthService(
     fun reissue(
         refreshToken: String
     ): TokenResponse {
-        if (!jwtProvider.validateToken(refreshToken)) {
-            throw BusinessException(ErrorCode.INVALID_TOKEN)
-        }
-
         val kakaoId =
-            jwtProvider.getKakaoId(refreshToken)
+            when (val parseResult = jwtProvider.parseToken(refreshToken)) {
+                is TokenParseResult.Success -> parseResult.subject
+                TokenParseResult.Expired -> throw BusinessException(ErrorCode.EXPIRED_REFRESH_TOKEN)
+                TokenParseResult.Invalid -> throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
+            }
 
         val user =
-            findUserBySocialId(
+            userRepository.findBySocialId(
                 kakaoId,
-            )
+            ) ?: throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
 
         val savedRefreshToken =
             refreshTokenRepository.findByUser_Id(
-                requireUserId(user),
+                user.id ?: throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN),
             )
-                ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
+                ?: throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
 
         if (savedRefreshToken.token != refreshToken) {
-            throw BusinessException(ErrorCode.INVALID_TOKEN)
+            throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
         }
 
         val accessToken =

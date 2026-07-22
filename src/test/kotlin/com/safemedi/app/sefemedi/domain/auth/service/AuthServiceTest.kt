@@ -11,6 +11,7 @@ import com.safemedi.app.sefemedi.domain.user.repository.UserDeviceRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
+import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -19,6 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.times
 
 class AuthServiceTest {
 
@@ -105,8 +107,9 @@ class AuthServiceTest {
             token = refreshToken,
         )
 
-        given(jwtProvider.validateToken(refreshToken)).willReturn(true)
-        given(jwtProvider.getKakaoId(refreshToken)).willReturn("4903042739")
+        given(jwtProvider.parseToken(refreshToken)).willReturn(
+            TokenParseResult.Success("4903042739")
+        )
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(refreshTokenRepository.findByUser_Id(1L)).willReturn(storedRefreshToken)
         given(jwtProvider.createAccessToken("4903042739")).willReturn("new-access-token")
@@ -118,6 +121,31 @@ class AuthServiceTest {
         assertEquals("new-access-token", response.accessToken)
         assertEquals("new-refresh-token", response.refreshToken)
         assertEquals("new-refresh-token", storedRefreshToken.token)
+        verify(jwtProvider, times(1)).parseToken(refreshToken)
+    }
+
+    @Test
+    fun `reissue throws INVALID_REFRESH_TOKEN when refresh token is malformed`() {
+        val refreshToken = "refresh-token"
+        given(jwtProvider.parseToken(refreshToken)).willReturn(TokenParseResult.Invalid)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.reissue(refreshToken)
+        }
+
+        assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.errorCode)
+    }
+
+    @Test
+    fun `reissue throws EXPIRED_REFRESH_TOKEN when refresh token is expired`() {
+        val refreshToken = "refresh-token"
+        given(jwtProvider.parseToken(refreshToken)).willReturn(TokenParseResult.Expired)
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.reissue(refreshToken)
+        }
+
+        assertEquals(ErrorCode.EXPIRED_REFRESH_TOKEN, exception.errorCode)
     }
 
     @Test

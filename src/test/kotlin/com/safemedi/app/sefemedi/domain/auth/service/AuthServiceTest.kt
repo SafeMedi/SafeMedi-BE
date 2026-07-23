@@ -1,10 +1,8 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
 import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
-import com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist
 import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
 import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
-import com.safemedi.app.sefemedi.domain.auth.repository.AccessTokenBlacklistRepository
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.entity.UserDevice
@@ -29,7 +27,7 @@ class AuthServiceTest {
     private lateinit var jwtProvider: JwtProvider
     private lateinit var userRepository: UserRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
-    private lateinit var accessTokenBlacklistRepository: AccessTokenBlacklistRepository
+    private lateinit var accessTokenBlacklistService: AccessTokenBlacklistService
     private lateinit var socialLoginVerifier: SocialLoginVerifier
     private lateinit var userDeviceRepository: UserDeviceRepository
     private lateinit var authService: AuthService
@@ -39,7 +37,7 @@ class AuthServiceTest {
         jwtProvider = mock(JwtProvider::class.java)
         userRepository = mock(UserRepository::class.java)
         refreshTokenRepository = mock(RefreshTokenRepository::class.java)
-        accessTokenBlacklistRepository = mock(AccessTokenBlacklistRepository::class.java)
+        accessTokenBlacklistService = mock(AccessTokenBlacklistService::class.java)
         userDeviceRepository = mock(UserDeviceRepository::class.java)
         socialLoginVerifier = object : SocialLoginVerifier {
             override fun resolveSocialId(accessToken: String): String {
@@ -51,7 +49,7 @@ class AuthServiceTest {
             jwtProvider = jwtProvider,
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
-            accessTokenBlacklistRepository = accessTokenBlacklistRepository,
+            accessTokenBlacklistService = accessTokenBlacklistService,
             socialLoginVerifier = socialLoginVerifier,
             userDeviceRepository = userDeviceRepository,
         )
@@ -60,17 +58,15 @@ class AuthServiceTest {
     private fun givenValidLogoutAccessToken(
         socialId: String = "4903042739",
         accessToken: String = "access-token",
-    ) {
+    ): Date {
+        val expiresAt = Date(System.currentTimeMillis() + 60_000)
+
         given(jwtProvider.validateToken(accessToken)).willReturn(true)
         given(jwtProvider.getKakaoId(accessToken)).willReturn(socialId)
-        given(jwtProvider.getExpiration(accessToken)).willReturn(Date(System.currentTimeMillis() + 60_000))
-        given(accessTokenBlacklistRepository.existsByToken(accessToken)).willReturn(false)
-        given(accessTokenBlacklistRepository.save(any(AccessTokenBlacklist::class.java))).willReturn(
-            AccessTokenBlacklist(
-                token = accessToken,
-                expiresAt = java.time.LocalDateTime.now(),
-            )
-        )
+        given(jwtProvider.getExpiration(accessToken)).willReturn(expiresAt)
+        given(accessTokenBlacklistService.contains(accessToken)).willReturn(false)
+
+        return expiresAt
     }
 
     @Test
@@ -159,7 +155,7 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
-        givenValidLogoutAccessToken()
+        val expiresAt = givenValidLogoutAccessToken()
 
         val response = authService.logout(
             socialId = "4903042739",
@@ -172,7 +168,7 @@ class AuthServiceTest {
         assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
         assertEquals(false, userDevice.isActive)
         verify(refreshTokenRepository).deleteByUserId(1L)
-        verify(accessTokenBlacklistRepository).save(any(AccessTokenBlacklist::class.java))
+        verify(accessTokenBlacklistService).blacklist("access-token", expiresAt)
     }
 
     @Test

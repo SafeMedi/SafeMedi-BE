@@ -1,13 +1,11 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
 import com.safemedi.app.sefemedi.domain.auth.client.SocialLoginVerifier
-import com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist
 import com.safemedi.app.sefemedi.domain.auth.dto.LoginResponse
 import com.safemedi.app.sefemedi.domain.auth.dto.LogoutRequest
 import com.safemedi.app.sefemedi.domain.auth.dto.LogoutResponse
 import com.safemedi.app.sefemedi.domain.auth.dto.TokenResponse
 import com.safemedi.app.sefemedi.domain.auth.entity.RefreshToken
-import com.safemedi.app.sefemedi.domain.auth.repository.AccessTokenBlacklistRepository
 import com.safemedi.app.sefemedi.domain.auth.repository.RefreshTokenRepository
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
@@ -17,8 +15,6 @@ import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
-import java.time.ZoneId
 import java.util.Locale
 
 @Service
@@ -27,7 +23,7 @@ class AuthService(
     private val jwtProvider: JwtProvider,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val accessTokenBlacklistRepository: AccessTokenBlacklistRepository,
+    private val accessTokenBlacklistService: AccessTokenBlacklistService,
     private val socialLoginVerifier: SocialLoginVerifier,
     private val userDeviceRepository: UserDeviceRepository,
 ) {
@@ -246,7 +242,7 @@ class AuthService(
         if (jwtProvider.getKakaoId(accessToken) != socialId) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
-        if (accessTokenBlacklistRepository.existsByToken(accessToken)) {
+        if (accessTokenBlacklistService.contains(accessToken)) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
     }
@@ -254,16 +250,9 @@ class AuthService(
     private fun discardAccessToken(
         accessToken: String,
     ) {
-        val expiresAt = LocalDateTime.ofInstant(
-            jwtProvider.getExpiration(accessToken).toInstant(),
-            SERVICE_ZONE_ID,
-        )
-
-        accessTokenBlacklistRepository.save(
-            AccessTokenBlacklist(
-                token = accessToken,
-                expiresAt = expiresAt,
-            )
+        accessTokenBlacklistService.blacklist(
+            token = accessToken,
+            expiresAt = jwtProvider.getExpiration(accessToken),
         )
     }
 
@@ -275,6 +264,5 @@ class AuthService(
     private companion object {
         const val KAKAO_PROVIDER = "kakao"
         const val MAX_DEVICE_TOKEN_LENGTH = 512
-        val SERVICE_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }

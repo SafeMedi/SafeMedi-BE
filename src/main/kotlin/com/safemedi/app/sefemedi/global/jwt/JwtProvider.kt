@@ -3,10 +3,21 @@ package com.safemedi.app.sefemedi.global.jwt
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.*
+
+sealed interface TokenParseResult {
+    data class Success(
+        val subject: String,
+    ) : TokenParseResult
+
+    object Expired : TokenParseResult
+
+    object Invalid : TokenParseResult
+}
 
 @Component
 class JwtProvider(
@@ -51,52 +62,19 @@ class JwtProvider(
         )
     }
 
-    fun getKakaoId(
+    fun parseToken(
         token: String
-    ): String {
-        return getClaimsFromAnyToken(token).subject
-    }
-
-    fun getExpiration(
-        token: String
-    ): Date {
-        return getClaimsFromAnyToken(token).expiration
-    }
-
-    fun validateAccessToken(
-        token: String
-    ): Boolean {
-        return validateToken(
-            token = token,
-            tokenType = TokenType.ACCESS
-        )
-    }
-
-    fun validateRefreshToken(
-        token: String
-    ): Boolean {
-        return validateToken(
-            token = token,
-            tokenType = TokenType.REFRESH
-        )
-    }
-
-    private fun validateToken(
-        token: String,
-        tokenType: TokenType
-    ): Boolean {
+    ): TokenParseResult {
         return try {
-            val claims =
-                getClaims(
-                    token = token,
-                    tokenType = tokenType
-                )
-
-            claims[TOKEN_TYPE_CLAIM] == tokenType.value
+            TokenParseResult.Success(
+                subject = getClaims(token).subject
+            )
+        } catch (_: ExpiredJwtException) {
+            TokenParseResult.Expired
         } catch (_: JwtException) {
-            false
+            TokenParseResult.Invalid
         } catch (_: IllegalArgumentException) {
-            false
+            TokenParseResult.Invalid
         }
     }
 

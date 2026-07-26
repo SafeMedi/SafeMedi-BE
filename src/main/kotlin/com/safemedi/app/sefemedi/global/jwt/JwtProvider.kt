@@ -63,12 +63,6 @@ class JwtProvider(
         return getClaimsFromAnyToken(token).expiration
     }
 
-    fun validateToken(
-        token: String
-    ): Boolean {
-        return validateAccessToken(token) || validateRefreshToken(token)
-    }
-
     fun validateAccessToken(
         token: String
     ): Boolean {

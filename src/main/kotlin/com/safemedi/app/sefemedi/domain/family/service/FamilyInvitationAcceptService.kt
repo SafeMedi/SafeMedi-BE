@@ -33,9 +33,8 @@ class FamilyInvitationAcceptService(
         val invitation = familyInvitationRepository.findByTokenHashForUpdate(tokenHasher.hash(token))
             ?: throw BusinessException(ErrorCode.FAMILY_INVITATION_NOT_FOUND)
         val acceptedInstant = clock.instant()
-        val acceptedAt = LocalDateTime.ofInstant(acceptedInstant, ZoneOffset.UTC)
 
-        if (!invitation.expiresAt.isAfter(acceptedAt)) {
+        if (!invitation.expiresAt.isAfter(acceptedInstant)) {
             throw BusinessException(ErrorCode.FAMILY_INVITATION_EXPIRED)
         }
         if (invitation.status != FamilyInvitationStatus.PENDING) {
@@ -59,7 +58,7 @@ class FamilyInvitationAcceptService(
 
         invitation.accept(
             acceptedBy = acceptingUser,
-            acceptedAt = acceptedAt,
+            acceptedAt = LocalDateTime.ofInstant(acceptedInstant, ZoneOffset.UTC),
         )
         val acceptingUserFamily = familyRepository.save(
             Family(

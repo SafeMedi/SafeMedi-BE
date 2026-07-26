@@ -61,7 +61,7 @@ class FamilyInvitationCreateServiceTest {
             familyInvitationRepository.findFirstByInviter_IdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
                 3L,
                 FamilyInvitationStatus.PENDING,
-                LocalDateTime.of(2026, 7, 15, 4, 0),
+                fixedInstant,
             )
         ).willReturn(null)
         given(tokenGenerator.generate()).willReturn(
@@ -97,14 +97,14 @@ class FamilyInvitationCreateServiceTest {
         val user = User(id = 3L, socialId = "kakao-123")
         val existing = mock(FamilyInvitation::class.java)
         val createdAt = LocalDateTime.of(2026, 7, 14, 6, 0)
-        val expiresAt = LocalDateTime.of(2026, 7, 15, 6, 0)
+        val expiresAt = Instant.parse("2026-07-15T06:00:00Z")
 
         given(userRepository.findBySocialIdForUpdate("kakao-123")).willReturn(user)
         given(
             familyInvitationRepository.findFirstByInviter_IdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
                 3L,
                 FamilyInvitationStatus.PENDING,
-                LocalDateTime.of(2026, 7, 15, 4, 0),
+                fixedInstant,
             )
         ).willReturn(existing)
         given(existing.id).willReturn(99L)
@@ -121,7 +121,7 @@ class FamilyInvitationCreateServiceTest {
         assertEquals("https://invite.example.com/invite/existing-token", result.response.inviteUrl)
         assertEquals(FamilyInvitationStatus.PENDING, result.response.status)
         assertEquals(createdAt.toInstant(ZoneOffset.UTC), result.response.createdAt)
-        assertEquals(expiresAt.toInstant(ZoneOffset.UTC), result.response.expiresAt)
+        assertEquals(expiresAt, result.response.expiresAt)
         verify(tokenGenerator, never()).generate()
         verify(familyInvitationRepository, never()).saveAndFlush(any(FamilyInvitation::class.java))
     }

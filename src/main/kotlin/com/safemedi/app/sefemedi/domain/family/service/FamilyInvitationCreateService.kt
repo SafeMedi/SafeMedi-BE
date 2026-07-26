@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.util.UriComponentsBuilder
 import java.time.Clock
-import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 @Service
 class FamilyInvitationCreateService(
@@ -35,7 +35,7 @@ class FamilyInvitationCreateService(
             ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
         val inviterId = inviter.id
             ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
-        val now = LocalDateTime.now(clock)
+        val now = clock.instant()
         val existingInvitation = familyInvitationRepository
             .findFirstByInviter_IdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
                 inviterId = inviterId,
@@ -56,7 +56,7 @@ class FamilyInvitationCreateService(
             )
         }
 
-        val expiresAt = now.plusHours(INVITATION_VALID_HOURS)
+        val expiresAt = now.plus(INVITATION_VALID_HOURS, ChronoUnit.HOURS)
         val token = tokenGenerator.generate()
         val invitation = familyInvitationRepository.saveAndFlush(
             FamilyInvitation(
@@ -81,8 +81,8 @@ class FamilyInvitationCreateService(
                 invitationId = invitationId,
                 inviteUrl = buildInviteUrl(token.rawValue),
                 status = FamilyInvitationStatus.PENDING,
-                createdAt = now.toInstant(ZoneOffset.UTC),
-                expiresAt = expiresAt.toInstant(ZoneOffset.UTC),
+                createdAt = now,
+                expiresAt = expiresAt,
             ),
             created = true,
         )
@@ -96,7 +96,7 @@ class FamilyInvitationCreateService(
             inviteUrl = buildInviteUrl(rawToken),
             status = status,
             createdAt = invitationCreatedAt.toInstant(ZoneOffset.UTC),
-            expiresAt = expiresAt.toInstant(ZoneOffset.UTC),
+            expiresAt = expiresAt,
         )
     }
 

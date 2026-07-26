@@ -16,7 +16,6 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 class FamilyInvitationQueryServiceTest {
@@ -27,7 +26,7 @@ class FamilyInvitationQueryServiceTest {
 
     private val currentUser = User(id = 1L, nickname = "현재 사용자", socialId = "kakao-123")
     private val inviter = User(id = 2L, nickname = "홍길동", socialId = "kakao-456")
-    private val now = LocalDateTime.of(2026, 7, 15, 6, 0)
+    private val now = Instant.parse("2026-07-15T06:00:00Z")
 
     @BeforeEach
     fun setUp() {
@@ -48,7 +47,7 @@ class FamilyInvitationQueryServiceTest {
     @Test
     fun `유효한 초대 링크이면 초대자 이름과 UTC 만료 시각을 반환한다`() {
         given(familyInvitationRepository.findByTokenHash("token-hash")).willReturn(
-            invitation(expiresAt = now.plusHours(12))
+            invitation(expiresAt = now.plusSeconds(12 * 60 * 60))
         )
 
         val response = service.getInvitationInfo("kakao-123", "raw-token")
@@ -124,7 +123,7 @@ class FamilyInvitationQueryServiceTest {
     private fun invitation(
         inviter: User = this.inviter,
         status: FamilyInvitationStatus = FamilyInvitationStatus.PENDING,
-        expiresAt: LocalDateTime = now.plusHours(1),
+        expiresAt: Instant = now.plusSeconds(3600),
     ): FamilyInvitation {
         return FamilyInvitation(
             id = 10L,

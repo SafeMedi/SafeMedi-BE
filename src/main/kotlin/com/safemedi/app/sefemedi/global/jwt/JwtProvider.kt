@@ -66,8 +66,18 @@ class JwtProvider(
         token: String
     ): TokenParseResult {
         return try {
+            val claims =
+                getClaims(
+                    token = token,
+                    tokenType = TokenType.REFRESH
+                )
+
+            if (claims[TOKEN_TYPE_CLAIM] != TokenType.REFRESH.value) {
+                return TokenParseResult.Invalid
+            }
+
             TokenParseResult.Success(
-                subject = getClaims(token).subject
+                subject = claims.subject
             )
         } catch (_: ExpiredJwtException) {
             TokenParseResult.Expired
@@ -75,6 +85,55 @@ class JwtProvider(
             TokenParseResult.Invalid
         } catch (_: IllegalArgumentException) {
             TokenParseResult.Invalid
+        }
+    }
+
+    fun getKakaoId(
+        token: String
+    ): String {
+        return getClaimsFromAnyToken(token).subject
+    }
+
+    fun getExpiration(
+        token: String
+    ): Date {
+        return getClaimsFromAnyToken(token).expiration
+    }
+
+    fun validateAccessToken(
+        token: String
+    ): Boolean {
+        return validateToken(
+            token = token,
+            tokenType = TokenType.ACCESS
+        )
+    }
+
+    fun validateRefreshToken(
+        token: String
+    ): Boolean {
+        return validateToken(
+            token = token,
+            tokenType = TokenType.REFRESH
+        )
+    }
+
+    private fun validateToken(
+        token: String,
+        tokenType: TokenType
+    ): Boolean {
+        return try {
+            val claims =
+                getClaims(
+                    token = token,
+                    tokenType = tokenType
+                )
+
+            claims[TOKEN_TYPE_CLAIM] == tokenType.value
+        } catch (_: JwtException) {
+            false
+        } catch (_: IllegalArgumentException) {
+            false
         }
     }
 

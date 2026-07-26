@@ -94,6 +94,8 @@ class AuthController(
         }
 
         return token
+    }
+
     private fun requireRefreshToken(
         refreshToken: String?,
     ): String {

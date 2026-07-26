@@ -58,7 +58,7 @@ class AuthService(
     fun reissue(
         refreshToken: String
     ): TokenResponse {
-        if (!jwtProvider.validateToken(refreshToken)) {
+        if (!jwtProvider.validateRefreshToken(refreshToken)) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
 
@@ -236,7 +236,7 @@ class AuthService(
         socialId: String,
         accessToken: String,
     ) {
-        if (!jwtProvider.validateToken(accessToken)) {
+        if (!jwtProvider.validateAccessToken(accessToken)) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
         if (jwtProvider.getKakaoId(accessToken) != socialId) {

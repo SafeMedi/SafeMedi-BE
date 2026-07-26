@@ -63,7 +63,7 @@ class AuthServiceTest {
     ): Instant {
         val expiresAt = Date(System.currentTimeMillis() + 60_000)
 
-        given(jwtProvider.validateToken(accessToken)).willReturn(true)
+        given(jwtProvider.validateAccessToken(accessToken)).willReturn(true)
         given(jwtProvider.getKakaoId(accessToken)).willReturn(socialId)
         given(jwtProvider.getExpiration(accessToken)).willReturn(expiresAt)
         given(accessTokenBlacklistService.contains(accessToken)).willReturn(false)
@@ -126,7 +126,7 @@ class AuthServiceTest {
             token = refreshToken,
         )
 
-        given(jwtProvider.validateToken(refreshToken)).willReturn(true)
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true)
         given(jwtProvider.getKakaoId(refreshToken)).willReturn("4903042739")
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(refreshTokenRepository.findByUser_Id(1L)).willReturn(storedRefreshToken)

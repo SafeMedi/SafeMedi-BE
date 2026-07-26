@@ -25,7 +25,7 @@ class JwtAuthenticationFilter(
 
         if (
             token != null &&
-            jwtProvider.validateToken(token) &&
+            jwtProvider.validateAccessToken(token) &&
             !accessTokenBlacklistService.contains(token) &&
             SecurityContextHolder.getContext().authentication == null
         ) {

@@ -26,9 +26,14 @@ class JwtProvider(
     private val secretKey: String
 ) {
 
-    private val key =
+    private val accessKey =
         Keys.hmacShaKeyFor(
-            secretKey.toByteArray()
+            "$secretKey:access".toByteArray()
+        )
+
+    private val refreshKey =
+        Keys.hmacShaKeyFor(
+            "$secretKey:refresh".toByteArray()
         )
 
     private val accessTokenExpirationMillis =
@@ -42,7 +47,8 @@ class JwtProvider(
     ): String {
         return createToken(
             kakaoId,
-            accessTokenExpirationMillis
+            accessTokenExpirationMillis,
+            TokenType.ACCESS
         )
     }
 
@@ -51,7 +57,8 @@ class JwtProvider(
     ): String {
         return createToken(
             kakaoId,
-            refreshTokenExpirationMillis
+            refreshTokenExpirationMillis,
+            TokenType.REFRESH
         )
     }
 
@@ -59,8 +66,18 @@ class JwtProvider(
         token: String
     ): TokenParseResult {
         return try {
+            val claims =
+                getClaims(
+                    token = token,
+                    tokenType = TokenType.REFRESH
+                )
+
+            if (claims[TOKEN_TYPE_CLAIM] != TokenType.REFRESH.value) {
+                return TokenParseResult.Invalid
+            }
+
             TokenParseResult.Success(
-                subject = getClaims(token).subject
+                subject = claims.subject
             )
         } catch (_: ExpiredJwtException) {
             TokenParseResult.Expired
@@ -71,9 +88,59 @@ class JwtProvider(
         }
     }
 
+    fun getKakaoId(
+        token: String
+    ): String {
+        return getClaimsFromAnyToken(token).subject
+    }
+
+    fun getExpiration(
+        token: String
+    ): Date {
+        return getClaimsFromAnyToken(token).expiration
+    }
+
+    fun validateAccessToken(
+        token: String
+    ): Boolean {
+        return validateToken(
+            token = token,
+            tokenType = TokenType.ACCESS
+        )
+    }
+
+    fun validateRefreshToken(
+        token: String
+    ): Boolean {
+        return validateToken(
+            token = token,
+            tokenType = TokenType.REFRESH
+        )
+    }
+
+    private fun validateToken(
+        token: String,
+        tokenType: TokenType
+    ): Boolean {
+        return try {
+            val claims =
+                getClaims(
+                    token = token,
+                    tokenType = tokenType
+                )
+
+            claims[TOKEN_TYPE_CLAIM] == tokenType.value
+        } catch (_: JwtException) {
+            false
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }
+
     private fun createToken(
         kakaoId: String,
-        expirationMillis: Long
+        expirationMillis: Long,
+        tokenType: TokenType
     ): String {
         val now = Date()
 
@@ -84,19 +151,51 @@ class JwtProvider(
 
         return Jwts.builder()
             .subject(kakaoId)
+            .claim(TOKEN_TYPE_CLAIM, tokenType.value)
             .issuedAt(now)
             .expiration(expiredDate)
-            .signWith(key)
+            .signWith(tokenType.signingKey())
             .compact()
     }
 
     private fun getClaims(
-        token: String
+        token: String,
+        tokenType: TokenType
     ): Claims {
         return Jwts.parser()
-            .verifyWith(key)
+            .verifyWith(tokenType.signingKey())
             .build()
             .parseSignedClaims(token)
             .payload
+    }
+
+    private fun getClaimsFromAnyToken(
+        token: String
+    ): Claims {
+        return TokenType.entries.firstNotNullOfOrNull { tokenType ->
+            runCatching {
+                getClaims(
+                    token = token,
+                    tokenType = tokenType
+                )
+            }.getOrNull()
+        } ?: throw JwtException("Invalid token")
+    }
+
+    private fun TokenType.signingKey() =
+        when (this) {
+            TokenType.ACCESS -> accessKey
+            TokenType.REFRESH -> refreshKey
+        }
+
+    private enum class TokenType(
+        val value: String
+    ) {
+        ACCESS("access"),
+        REFRESH("refresh")
+    }
+
+    private companion object {
+        const val TOKEN_TYPE_CLAIM = "tokenType"
     }
 }

@@ -13,6 +13,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.time.Instant
 import java.time.LocalDateTime
 
 @Entity
@@ -37,7 +38,7 @@ class FamilyInvitation(
     var status: FamilyInvitationStatus = FamilyInvitationStatus.PENDING,
 
     @Column(name = "expires_at", nullable = false)
-    val expiresAt: LocalDateTime,
+    val expiresAt: Instant,
 
     @Column(name = "accepted_at")
     var acceptedAt: LocalDateTime? = null,

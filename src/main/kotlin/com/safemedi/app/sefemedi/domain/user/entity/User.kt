@@ -1,5 +1,3 @@
-@file:Suppress("SqlResolve")
-
 package com.safemedi.app.sefemedi.domain.user.entity
 
 import com.safemedi.app.sefemedi.global.entity.BaseTimeEntity
@@ -30,7 +28,8 @@ class User(
     @Column(name = "is_tutorial_completed")
     var isTutorialCompleted: Boolean = false,
 
-    @field:Column(name = "deleted_at")
+    @Suppress("SqlResolve", "JpaDataSourceORMInspection")
+    @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null
 ) : BaseTimeEntity() {
     fun withdraw(withdrawnAt: LocalDateTime) {
@@ -38,5 +37,10 @@ class User(
         inviteCode = null
         isTutorialCompleted = false
         deletedAt = withdrawnAt
+    }
+
+    fun reactivate() {
+        deletedAt = null
+        isTutorialCompleted = false
     }
 }

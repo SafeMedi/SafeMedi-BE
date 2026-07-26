@@ -24,6 +24,7 @@ class AuthService(
     private val jwtProvider: JwtProvider,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val accessTokenBlacklistService: AccessTokenBlacklistService,
     private val socialLoginVerifier: SocialLoginVerifier,
     private val userDeviceRepository: UserDeviceRepository,
 ) {
@@ -100,11 +101,16 @@ class AuthService(
     @Transactional
     fun logout(
         socialId: String,
+        accessToken: String,
         request: LogoutRequest,
     ): LogoutResponse {
         val deviceToken = validateLogoutDeviceToken(request.deviceToken)
         val user = findUserBySocialId(socialId)
         val userId = requireUserId(user)
+        validateLogoutAccessToken(
+            socialId = socialId,
+            accessToken = accessToken,
+        )
 
         val userDevice = userDeviceRepository.findByDeviceToken(deviceToken)
             ?: throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_NOT_FOUND)
@@ -114,6 +120,8 @@ class AuthService(
         }
 
         userDevice.deactivate()
+        refreshTokenRepository.deleteByUserId(userId)
+        discardAccessToken(accessToken)
 
         return LogoutResponse()
     }
@@ -191,7 +199,10 @@ class AuthService(
                     socialId = kakaoId
                 )
             )
-            existingUser.deletedAt != null -> throw BusinessException(ErrorCode.USER_ALREADY_WITHDRAWN)
+            existingUser.deletedAt != null -> {
+                existingUser.reactivate()
+                existingUser
+            }
             else -> existingUser
         }
     }
@@ -220,6 +231,30 @@ class AuthService(
         }
 
         return trimmedToken
+    }
+
+    private fun validateLogoutAccessToken(
+        socialId: String,
+        accessToken: String,
+    ) {
+        if (!jwtProvider.validateAccessToken(accessToken)) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+        if (jwtProvider.getKakaoId(accessToken) != socialId) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+        if (accessTokenBlacklistService.contains(accessToken)) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+    }
+
+    private fun discardAccessToken(
+        accessToken: String,
+    ) {
+        accessTokenBlacklistService.blacklist(
+            token = accessToken,
+            expiresAt = jwtProvider.getExpiration(accessToken).toInstant(),
+        )
     }
 
     private data class IssuedTokens(

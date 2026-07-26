@@ -43,7 +43,10 @@ class TestAuthService(
                     socialId = normalizedSocialId,
                 ),
             )
-            existingUser.deletedAt != null -> throw BusinessException(ErrorCode.USER_ALREADY_WITHDRAWN)
+            existingUser.deletedAt != null -> {
+                existingUser.reactivate()
+                existingUser
+            }
             else -> existingUser
         }
 

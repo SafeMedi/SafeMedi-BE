@@ -34,6 +34,7 @@ class FamilyInvitationAcceptServiceTest {
 
     private val acceptingUser = User(id = 1L, nickname = "수락자", socialId = "kakao-123")
     private val inviter = User(id = 2L, nickname = "홍길동", socialId = "kakao-456")
+    private val nowInstant = Instant.parse("2026-07-15T06:05:00Z")
     private val now = LocalDateTime.of(2026, 7, 15, 6, 5)
 
     @BeforeEach
@@ -47,7 +48,7 @@ class FamilyInvitationAcceptServiceTest {
             familyInvitationRepository = familyInvitationRepository,
             familyRepository = familyRepository,
             tokenHasher = tokenHasher,
-            clock = Clock.fixed(Instant.parse("2026-07-15T06:05:00Z"), ZoneId.of("Asia/Seoul")),
+            clock = Clock.fixed(nowInstant, ZoneId.of("Asia/Seoul")),
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(acceptingUser)
@@ -118,7 +119,7 @@ class FamilyInvitationAcceptServiceTest {
     @Test
     fun `초대가 만료되었으면 INV_002 예외를 던진다`() {
         given(familyInvitationRepository.findByTokenHashForUpdate("token-hash")).willReturn(
-            invitation(expiresAt = now)
+            invitation(expiresAt = nowInstant)
         )
 
         assertError(ErrorCode.FAMILY_INVITATION_EXPIRED) {
@@ -174,7 +175,7 @@ class FamilyInvitationAcceptServiceTest {
     private fun invitation(
         inviter: User = this.inviter,
         status: FamilyInvitationStatus = FamilyInvitationStatus.PENDING,
-        expiresAt: LocalDateTime = now.plusHours(1),
+        expiresAt: Instant = nowInstant.plusSeconds(3600),
     ): FamilyInvitation {
         return FamilyInvitation(
             id = 10L,

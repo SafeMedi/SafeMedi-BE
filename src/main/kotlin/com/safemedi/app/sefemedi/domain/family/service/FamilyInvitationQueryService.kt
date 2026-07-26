@@ -9,8 +9,6 @@ import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 
 @Service
 class FamilyInvitationQueryService(
@@ -29,7 +27,7 @@ class FamilyInvitationQueryService(
             ?: throw BusinessException(ErrorCode.INVALID_ACCESS_TOKEN)
         val invitation = familyInvitationRepository.findByTokenHash(tokenHasher.hash(token))
             ?: throw BusinessException(ErrorCode.FAMILY_INVITATION_NOT_FOUND)
-        val now = LocalDateTime.now(clock)
+        val now = clock.instant()
 
         if (!invitation.expiresAt.isAfter(now)) {
             throw BusinessException(ErrorCode.FAMILY_INVITATION_EXPIRED)
@@ -46,7 +44,7 @@ class FamilyInvitationQueryService(
 
         return FamilyInvitationInfoResponse(
             inviterName = inviterName,
-            expiresAt = invitation.expiresAt.toInstant(ZoneOffset.UTC),
+            expiresAt = invitation.expiresAt,
         )
     }
 }

@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import java.time.LocalDateTime
+import java.time.Instant
 
 interface FamilyInvitationRepository : JpaRepository<FamilyInvitation, Long> {
     @EntityGraph(attributePaths = ["inviter"])
@@ -24,6 +24,6 @@ interface FamilyInvitationRepository : JpaRepository<FamilyInvitation, Long> {
     fun findFirstByInviter_IdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
         inviterId: Long,
         status: FamilyInvitationStatus,
-        now: LocalDateTime,
+        now: Instant,
     ): FamilyInvitation?
 }

@@ -1,5 +1,6 @@
 package com.safemedi.app.sefemedi.global.jwt
 
+import com.safemedi.app.sefemedi.domain.auth.service.AccessTokenBlacklistService
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -11,7 +12,8 @@ import org.springframework.web.filter.OncePerRequestFilter
 @Component
 class JwtAuthenticationFilter(
 
-    private val jwtProvider: JwtProvider
+    private val jwtProvider: JwtProvider,
+    private val accessTokenBlacklistService: AccessTokenBlacklistService,
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(
@@ -23,23 +25,19 @@ class JwtAuthenticationFilter(
 
         if (
             token != null &&
+            jwtProvider.validateAccessToken(token) &&
+            !accessTokenBlacklistService.contains(token) &&
             SecurityContextHolder.getContext().authentication == null
         ) {
-            when (val parseResult = jwtProvider.parseToken(token)) {
-                is TokenParseResult.Success -> {
-                    val authentication =
-                        UsernamePasswordAuthenticationToken(
-                            parseResult.subject,
-                            null,
-                            emptyList()
-                        )
+            val authentication =
+                UsernamePasswordAuthenticationToken(
+                    jwtProvider.getKakaoId(token),
+                    null,
+                    emptyList()
+                )
 
-                    SecurityContextHolder.getContext().authentication =
-                        authentication
-                }
-                TokenParseResult.Expired,
-                TokenParseResult.Invalid -> Unit
-            }
+            SecurityContextHolder.getContext().authentication =
+                authentication
         }
 
         filterChain.doFilter(

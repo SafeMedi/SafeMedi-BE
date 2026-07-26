@@ -11,6 +11,7 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -52,10 +53,12 @@ class AuthController(
     )
     fun logout(
         authentication: Authentication,
+        @RequestHeader("Authorization") authorization: String?,
         @RequestBody request: LogoutRequest,
     ): LogoutResponse {
         return authService.logout(
             socialId = requireAuthenticatedSocialId(authentication),
+            accessToken = requireBearerToken(authorization),
             request = request,
         )
     }
@@ -75,6 +78,24 @@ class AuthController(
         return socialId
     }
 
+    private fun requireBearerToken(
+        authorization: String?,
+    ): String {
+        if (
+            authorization == null ||
+            !authorization.startsWith(BEARER_PREFIX)
+        ) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+
+        val token = authorization.substring(BEARER_PREFIX.length).trim()
+        if (token.isBlank()) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+
+        return token
+    }
+
     private fun requireRefreshToken(
         refreshToken: String?,
     ): String {
@@ -88,5 +109,6 @@ class AuthController(
 
     private companion object {
         const val ANONYMOUS_PRINCIPAL_NAME = "anonymousUser"
+        const val BEARER_PREFIX = "Bearer "
     }
 }

@@ -29,21 +29,15 @@ class JwtAuthenticationFilter(
             !accessTokenBlacklistService.contains(token) &&
             SecurityContextHolder.getContext().authentication == null
         ) {
-            when (val parseResult = jwtProvider.parseToken(token)) {
-                is TokenParseResult.Success -> {
-                    val authentication =
-                        UsernamePasswordAuthenticationToken(
-                            parseResult.subject,
-                            null,
-                            emptyList()
-                        )
+            val authentication =
+                UsernamePasswordAuthenticationToken(
+                    jwtProvider.getKakaoId(token),
+                    null,
+                    emptyList()
+                )
 
-                    SecurityContextHolder.getContext().authentication =
-                        authentication
-                }
-                TokenParseResult.Expired,
-                TokenParseResult.Invalid -> Unit
-            }
+            SecurityContextHolder.getContext().authentication =
+                authentication
         }
 
         filterChain.doFilter(

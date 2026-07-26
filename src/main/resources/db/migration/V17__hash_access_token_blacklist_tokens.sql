@@ -1,3 +1,5 @@
+-- noinspection SqlResolveForFile
+
 ALTER TABLE `access_token_blacklist`
     DROP INDEX `uk_access_token_blacklist_token`;
 

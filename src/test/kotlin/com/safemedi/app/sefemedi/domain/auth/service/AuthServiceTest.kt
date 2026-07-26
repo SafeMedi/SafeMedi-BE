@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import java.time.Instant
 import java.util.Date
@@ -300,7 +301,6 @@ class AuthServiceTest {
         )
 
         given(userRepository.findBySocialIdIncludingDeleted("4903042739")).willReturn(withdrawnUser)
-        given(userRepository.save(withdrawnUser)).willReturn(withdrawnUser)
         given(jwtProvider.createAccessToken("4903042739")).willReturn("app-access-token")
         given(jwtProvider.createRefreshToken("4903042739")).willReturn("app-refresh-token")
         given(refreshTokenRepository.findByUser_Id(1L)).willReturn(null)
@@ -320,6 +320,6 @@ class AuthServiceTest {
         assertEquals("app-refresh-token", response.refreshToken)
         assertNull(withdrawnUser.deletedAt)
         assertEquals(false, response.isTutorialCompleted)
-        verify(userRepository).save(withdrawnUser)
+        verify(userRepository, never()).save(withdrawnUser)
     }
 }

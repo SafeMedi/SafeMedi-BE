@@ -45,7 +45,7 @@ class TestAuthService(
             )
             existingUser.deletedAt != null -> {
                 existingUser.reactivate()
-                userRepository.save(existingUser)
+                existingUser
             }
             else -> existingUser
         }

@@ -252,7 +252,7 @@ class AuthService(
     ) {
         accessTokenBlacklistService.blacklist(
             token = accessToken,
-            expiresAt = jwtProvider.getExpiration(accessToken),
+            expiresAt = jwtProvider.getExpiration(accessToken).toInstant(),
         )
     }
 

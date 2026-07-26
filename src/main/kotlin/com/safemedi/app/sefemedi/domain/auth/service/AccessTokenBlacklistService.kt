@@ -1,6 +1,6 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
-import java.util.Date
+import java.time.Instant
 
 interface AccessTokenBlacklistService {
 
@@ -10,6 +10,6 @@ interface AccessTokenBlacklistService {
 
     fun blacklist(
         token: String,
-        expiresAt: Date,
+        expiresAt: Instant,
     )
 }

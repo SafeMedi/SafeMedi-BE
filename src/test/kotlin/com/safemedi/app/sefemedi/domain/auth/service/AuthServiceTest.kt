@@ -20,6 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import java.time.Instant
 import java.util.Date
 
 class AuthServiceTest {
@@ -58,7 +59,7 @@ class AuthServiceTest {
     private fun givenValidLogoutAccessToken(
         socialId: String = "4903042739",
         accessToken: String = "access-token",
-    ): Date {
+    ): Instant {
         val expiresAt = Date(System.currentTimeMillis() + 60_000)
 
         given(jwtProvider.validateToken(accessToken)).willReturn(true)
@@ -66,7 +67,7 @@ class AuthServiceTest {
         given(jwtProvider.getExpiration(accessToken)).willReturn(expiresAt)
         given(accessTokenBlacklistService.contains(accessToken)).willReturn(false)
 
-        return expiresAt
+        return expiresAt.toInstant()
     }
 
     @Test

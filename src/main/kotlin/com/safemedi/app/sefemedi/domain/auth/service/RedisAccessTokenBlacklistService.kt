@@ -6,7 +6,6 @@ import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 import java.util.Base64
-import java.util.Date
 
 @Service
 class RedisAccessTokenBlacklistService(
@@ -24,12 +23,12 @@ class RedisAccessTokenBlacklistService(
 
     override fun blacklist(
         token: String,
-        expiresAt: Date,
+        expiresAt: Instant,
     ) {
         val ttl =
             Duration.between(
                 Instant.now(),
-                expiresAt.toInstant(),
+                expiresAt,
             )
 
         if (ttl.isZero || ttl.isNegative) {

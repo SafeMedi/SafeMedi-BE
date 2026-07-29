@@ -18,6 +18,7 @@ import java.time.ZoneOffset
 
 class JpaAccessTokenBlacklistServiceTest {
 
+    private val accessToken = "access-token"
     private val clock =
         Clock.fixed(
             Instant.parse("2026-07-29T00:00:00Z"),
@@ -33,14 +34,13 @@ class JpaAccessTokenBlacklistServiceTest {
 
     @Test
     fun `blacklist stores hashed token with expiration time`() {
-        val token = "access-token"
         val expiresAt = Instant.parse("2026-07-29T00:10:00Z")
-        val tokenHash = hashToken(token)
+        val tokenHash = hashToken()
 
         given(accessTokenBlacklistRepository.findByTokenHash(tokenHash)).willReturn(null)
 
         service.blacklist(
-            token = token,
+            token = accessToken,
             expiresAt = expiresAt,
         )
 
@@ -56,8 +56,7 @@ class JpaAccessTokenBlacklistServiceTest {
 
     @Test
     fun `contains returns true for active blacklisted token`() {
-        val token = "access-token"
-        val tokenHash = hashToken(token)
+        val tokenHash = hashToken()
         val blacklistedToken =
             AccessTokenBlacklist(
                 id = 1L,
@@ -71,14 +70,13 @@ class JpaAccessTokenBlacklistServiceTest {
         given(accessTokenBlacklistRepository.findByTokenHash(tokenHash)).willReturn(blacklistedToken)
 
         assertTrue(
-            service.contains(token),
+            service.contains(accessToken),
         )
     }
 
     @Test
     fun `contains returns false for expired blacklisted token`() {
-        val token = "access-token"
-        val tokenHash = hashToken(token)
+        val tokenHash = hashToken()
         val blacklistedToken =
             AccessTokenBlacklist(
                 id = 1L,
@@ -92,16 +90,14 @@ class JpaAccessTokenBlacklistServiceTest {
         given(accessTokenBlacklistRepository.findByTokenHash(tokenHash)).willReturn(blacklistedToken)
 
         assertFalse(
-            service.contains(token),
+            service.contains(accessToken),
         )
     }
 
-    private fun hashToken(
-        token: String,
-    ): String {
+    private fun hashToken(): String {
         val digest =
             MessageDigest.getInstance("SHA-256")
-                .digest(token.toByteArray(Charsets.UTF_8))
+                .digest(accessToken.toByteArray(Charsets.UTF_8))
 
         return digest.joinToString(separator = "") {
             "%02x".format(it.toInt() and 0xff)

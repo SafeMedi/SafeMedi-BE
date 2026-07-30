@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentCaptor
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
@@ -37,20 +36,14 @@ class JpaAccessTokenBlacklistServiceTest {
         val expiresAt = Instant.parse("2026-07-29T00:10:00Z")
         val tokenHash = hashToken()
 
-        given(accessTokenBlacklistRepository.findByTokenHash(tokenHash)).willReturn(null)
-
         service.blacklist(
             token = accessToken,
             expiresAt = expiresAt,
         )
 
-        val captor = ArgumentCaptor.forClass(AccessTokenBlacklist::class.java)
-        verify(accessTokenBlacklistRepository).save(captor.capture())
-
-        assertEquals(tokenHash, captor.value.tokenHash)
-        assertEquals(
-            LocalDateTime.ofInstant(expiresAt, clock.zone),
-            captor.value.expiresAt,
+        verify(accessTokenBlacklistRepository).upsertTokenHash(
+            tokenHash = tokenHash,
+            expiresAt = java.time.LocalDateTime.ofInstant(expiresAt, clock.zone),
         )
     }
 

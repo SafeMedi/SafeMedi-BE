@@ -1,6 +1,5 @@
 package com.safemedi.app.sefemedi.domain.auth.service
 
-import com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist
 import com.safemedi.app.sefemedi.domain.auth.repository.AccessTokenBlacklistRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,17 +40,10 @@ class JpaAccessTokenBlacklistService(
         }
 
         val tokenHash = hashToken(token)
-
-        val blacklistedToken =
-            accessTokenBlacklistRepository.findByTokenHash(tokenHash)
-                ?.apply {
-                    this.expiresAt = expiresAtDateTime
-                } ?: AccessTokenBlacklist(
-                tokenHash = tokenHash,
-                expiresAt = expiresAtDateTime,
-            )
-
-        accessTokenBlacklistRepository.save(blacklistedToken)
+        accessTokenBlacklistRepository.upsertTokenHash(
+            tokenHash = tokenHash,
+            expiresAt = expiresAtDateTime,
+        )
     }
 
     private fun hashToken(

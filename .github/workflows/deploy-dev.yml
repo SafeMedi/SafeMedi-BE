@@ -22,7 +22,7 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       AWS_DEV_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEV_DEPLOY_ROLE_ARN }}
       AWS_DEV_SECURITY_GROUP_ID: ${{ vars.AWS_DEV_SECURITY_GROUP_ID }}
-      AWS_EC2_HOST_FINGERPRINT: SHA256:h2raEWLOcBb04HxEpa3ISTnRIGNlegj9ebF5zBPk+CQ
+      AWS_EC2_HOST_FINGERPRINT: SHA256:kNqWmJnH5qq+WmoFxKgmKxKOcqMsZI44cOpJ6slt/uA
       DEPLOY_DIR: /opt/safemedi/dev
       CONTAINER_NAME: safemedi-dev
       IMAGE_TAG: safemedi-dev:${{ github.sha }}
@@ -164,7 +164,7 @@ jobs:
           set -euo pipefail
 
           ACTUAL_FINGERPRINT="$(
-            ssh-keyscan -T 10 -t ed25519 "$AWS_EC2_HOST" 2>/dev/null |
+            ssh-keyscan -T 10 -t ecdsa "$AWS_EC2_HOST" 2>/dev/null |
               ssh-keygen -lf - |
               awk 'NR == 1 { print $2 }'
           )"

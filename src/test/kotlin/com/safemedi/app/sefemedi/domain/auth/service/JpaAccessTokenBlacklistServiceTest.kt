@@ -86,6 +86,15 @@ class JpaAccessTokenBlacklistServiceTest {
         )
     }
 
+    @Test
+    fun `purgeExpiredEntries deletes entries expired at the current time`() {
+        service.purgeExpiredEntries()
+
+        verify(accessTokenBlacklistRepository).deleteExpiredEntriesAtOrBefore(
+            LocalDateTime.now(clock),
+        )
+    }
+
     private fun hashToken(): String {
         val digest =
             MessageDigest.getInstance("SHA-256")

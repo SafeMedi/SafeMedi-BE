@@ -2,6 +2,7 @@ package com.safemedi.app.sefemedi.domain.auth.repository
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -37,6 +38,33 @@ class AccessTokenBlacklistRepositoryTest {
         assertNotNull(stored)
         assertEquals(tokenHash, stored!!.tokenHash)
         assertEquals(secondExpiresAt, stored.expiresAt)
+        assertEquals(1L, accessTokenBlacklistRepository.count())
+    }
+
+    @Test
+    fun `delete expired entries at or before removes only expired rows`() {
+        val expiredTokenHash = "a".repeat(64)
+        val activeTokenHash = "b".repeat(64)
+        val purgeTime = LocalDateTime.of(2026, 7, 30, 10, 0)
+
+        accessTokenBlacklistRepository.saveAllAndFlush(
+            listOf(
+                com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist(
+                    tokenHash = expiredTokenHash,
+                    expiresAt = purgeTime.minusSeconds(1),
+                ),
+                com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist(
+                    tokenHash = activeTokenHash,
+                    expiresAt = purgeTime.plusSeconds(1),
+                ),
+            ),
+        )
+
+        val deletedCount = accessTokenBlacklistRepository.deleteExpiredEntriesAtOrBefore(purgeTime)
+
+        assertEquals(1, deletedCount)
+        assertNull(accessTokenBlacklistRepository.findByTokenHash(expiredTokenHash))
+        assertNotNull(accessTokenBlacklistRepository.findByTokenHash(activeTokenHash))
         assertEquals(1L, accessTokenBlacklistRepository.count())
     }
 }

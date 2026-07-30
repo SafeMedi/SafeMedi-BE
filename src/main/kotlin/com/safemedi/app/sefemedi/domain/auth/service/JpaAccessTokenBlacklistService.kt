@@ -46,6 +46,13 @@ class JpaAccessTokenBlacklistService(
         )
     }
 
+    @Transactional
+    override fun purgeExpiredEntries() {
+        accessTokenBlacklistRepository.deleteExpiredEntriesAtOrBefore(
+            LocalDateTime.now(clock),
+        )
+    }
+
     private fun hashToken(
         token: String,
     ): String {

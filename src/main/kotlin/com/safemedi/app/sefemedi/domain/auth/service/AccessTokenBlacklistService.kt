@@ -12,4 +12,6 @@ interface AccessTokenBlacklistService {
         token: String,
         expiresAt: Instant,
     )
+
+    fun purgeExpiredEntries()
 }

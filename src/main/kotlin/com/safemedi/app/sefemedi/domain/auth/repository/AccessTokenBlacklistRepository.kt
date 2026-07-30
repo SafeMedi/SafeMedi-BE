@@ -13,6 +13,17 @@ interface AccessTokenBlacklistRepository : JpaRepository<AccessTokenBlacklist, L
         tokenHash: String,
     ): AccessTokenBlacklist?
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+            delete from AccessTokenBlacklist accessTokenBlacklist
+            where accessTokenBlacklist.expiresAt <= :expiresAt
+        """,
+    )
+    fun deleteExpiredEntriesAtOrBefore(
+        @Param("expiresAt") expiresAt: LocalDateTime,
+    ): Int
+
     @Modifying
     @Query(
         value = """

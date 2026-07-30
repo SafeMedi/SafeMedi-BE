@@ -219,6 +219,8 @@ jobs:
             test -n "$FAMILY_INVITATION_BASE_URL"
             test -n "$FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY"
             test -r "$DEPLOY_DIR/secrets/firebase-adminsdk.json"
+            sudo chown ubuntu:10001 "$DEPLOY_DIR/secrets/firebase-adminsdk.json"
+            chmod 640 "$DEPLOY_DIR/secrets/firebase-adminsdk.json"
             FIREBASE_ENABLED="${FIREBASE_ENABLED:-false}"
 
             PREVIOUS_IMAGE="$(docker inspect --format='{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || true)"

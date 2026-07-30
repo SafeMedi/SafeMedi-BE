@@ -22,6 +22,7 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       AWS_DEV_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEV_DEPLOY_ROLE_ARN }}
       AWS_DEV_SECURITY_GROUP_ID: ${{ vars.AWS_DEV_SECURITY_GROUP_ID }}
+      AWS_EC2_HOST_FINGERPRINT: SHA256:h2raEWLOcBb04HxEpa3ISTnRIGNlegj9ebF5zBPk+CQ
       DEPLOY_DIR: /opt/safemedi/dev
       CONTAINER_NAME: safemedi-dev
       IMAGE_TAG: safemedi-dev:${{ github.sha }}
@@ -36,7 +37,6 @@ jobs:
         env:
           AWS_EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
           AWS_EC2_SSH_KEY: ${{ secrets.AWS_EC2_SSH_KEY }}
-          AWS_EC2_HOST_FINGERPRINT: ${{ secrets.AWS_EC2_HOST_FINGERPRINT }}
           DB_URL: ${{ secrets.DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -156,13 +156,31 @@ jobs:
           echo "rule-id=$RULE_ID" >> "$GITHUB_OUTPUT"
           echo "Temporarily allowed SSH from ${RUNNER_IP}/32"
 
+      - name: Verify EC2 SSH host fingerprint
+        shell: bash
+        env:
+          AWS_EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
+        run: |
+          set -euo pipefail
+
+          ACTUAL_FINGERPRINT="$(
+            ssh-keyscan -T 10 -t ed25519 "$AWS_EC2_HOST" 2>/dev/null |
+              ssh-keygen -lf - |
+              awk 'NR == 1 { print $2 }'
+          )"
+
+          if [ "$ACTUAL_FINGERPRINT" != "$AWS_EC2_HOST_FINGERPRINT" ]; then
+            echo "::error::Unexpected EC2 SSH host fingerprint: $ACTUAL_FINGERPRINT"
+            exit 1
+          fi
+
       - name: Upload artifact to EC2
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.AWS_EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.AWS_EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.AWS_EC2_HOST_FINGERPRINT }}
+          fingerprint: ${{ env.AWS_EC2_HOST_FINGERPRINT }}
           source: "app.jar,Dockerfile,.dockerignore"
           target: "/opt/safemedi/dev"
           overwrite: true
@@ -186,7 +204,7 @@ jobs:
           host: ${{ secrets.AWS_EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.AWS_EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.AWS_EC2_HOST_FINGERPRINT }}
+          fingerprint: ${{ env.AWS_EC2_HOST_FINGERPRINT }}
           envs: DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET,FAMILY_INVITATION_BASE_URL,FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY,FIREBASE_ENABLED,FCM_OUTBOX_BATCH_SIZE,FCM_OUTBOX_FIXED_DELAY_MS,IMAGE_TAG,CONTAINER_NAME,DEPLOY_DIR
           command_timeout: 10m
           script: |

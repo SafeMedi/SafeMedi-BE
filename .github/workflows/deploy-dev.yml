@@ -25,6 +25,8 @@ jobs:
       AWS_EC2_HOST_FINGERPRINT: SHA256:kNqWmJnH5qq+WmoFxKgmKxKOcqMsZI44cOpJ6slt/uA
       DEPLOY_DIR: /opt/safemedi/dev
       CONTAINER_NAME: safemedi-dev
+      REDIS_CONTAINER_NAME: safemedi-dev-redis
+      DOCKER_NETWORK: safemedi-dev-network
       IMAGE_TAG: safemedi-dev:${{ github.sha }}
 
     steps:
@@ -199,13 +201,15 @@ jobs:
           FCM_OUTBOX_FIXED_DELAY_MS: ${{ secrets.FCM_OUTBOX_FIXED_DELAY_MS }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
           CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+          REDIS_CONTAINER_NAME: ${{ env.REDIS_CONTAINER_NAME }}
+          DOCKER_NETWORK: ${{ env.DOCKER_NETWORK }}
           DEPLOY_DIR: ${{ env.DEPLOY_DIR }}
         with:
           host: ${{ secrets.AWS_EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.AWS_EC2_SSH_KEY }}
           fingerprint: ${{ env.AWS_EC2_HOST_FINGERPRINT }}
-          envs: DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET,FAMILY_INVITATION_BASE_URL,FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY,FIREBASE_ENABLED,FCM_OUTBOX_BATCH_SIZE,FCM_OUTBOX_FIXED_DELAY_MS,IMAGE_TAG,CONTAINER_NAME,DEPLOY_DIR
+          envs: DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET,FAMILY_INVITATION_BASE_URL,FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY,FIREBASE_ENABLED,FCM_OUTBOX_BATCH_SIZE,FCM_OUTBOX_FIXED_DELAY_MS,IMAGE_TAG,CONTAINER_NAME,REDIS_CONTAINER_NAME,DOCKER_NETWORK,DEPLOY_DIR
           command_timeout: 10m
           script: |
             set -eu
@@ -223,6 +227,43 @@ jobs:
             chmod 640 "$DEPLOY_DIR/secrets/firebase-adminsdk.json"
             FIREBASE_ENABLED="${FIREBASE_ENABLED:-false}"
 
+            docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 ||
+              docker network create "$DOCKER_NETWORK"
+
+            if ! docker container inspect "$REDIS_CONTAINER_NAME" >/dev/null 2>&1; then
+              docker volume create safemedi-dev-redis-data >/dev/null
+              docker run -d \
+                --name "$REDIS_CONTAINER_NAME" \
+                --restart unless-stopped \
+                --network "$DOCKER_NETWORK" \
+                --memory 128m \
+                --cpus 0.25 \
+                --health-cmd "redis-cli ping || exit 1" \
+                --health-interval 5s \
+                --health-timeout 3s \
+                --health-retries 10 \
+                -v safemedi-dev-redis-data:/data \
+                redis:7-alpine \
+                redis-server --appendonly yes --appendfsync everysec
+            else
+              docker start "$REDIS_CONTAINER_NAME" >/dev/null
+              docker network connect "$DOCKER_NETWORK" "$REDIS_CONTAINER_NAME" 2>/dev/null || true
+            fi
+
+            REDIS_HEALTHY=false
+            for ATTEMPT in $(seq 1 30); do
+              if [ "$(docker inspect --format='{{.State.Health.Status}}' "$REDIS_CONTAINER_NAME")" = "healthy" ]; then
+                REDIS_HEALTHY=true
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$REDIS_HEALTHY" != "true" ]; then
+              docker logs --tail 100 "$REDIS_CONTAINER_NAME" || true
+              exit 1
+            fi
+
             PREVIOUS_IMAGE="$(docker inspect --format='{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || true)"
             docker build --tag "$IMAGE_TAG" .
 
@@ -231,6 +272,7 @@ jobs:
               docker run -d \
                 --name "$CONTAINER_NAME" \
                 --restart unless-stopped \
+                --network "$DOCKER_NETWORK" \
                 --memory 640m \
                 --cpus 1.0 \
                 -p 127.0.0.1:8081:8080 \
@@ -238,6 +280,8 @@ jobs:
                 -e DB_URL="$DB_URL" \
                 -e DB_USERNAME="$DB_USERNAME" \
                 -e DB_PASSWORD="$DB_PASSWORD" \
+                -e REDIS_HOST="$REDIS_CONTAINER_NAME" \
+                -e REDIS_PORT="6379" \
                 -e JWT_SECRET="$JWT_SECRET" \
                 -e FAMILY_INVITATION_BASE_URL="$FAMILY_INVITATION_BASE_URL" \
                 -e FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY="$FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY" \

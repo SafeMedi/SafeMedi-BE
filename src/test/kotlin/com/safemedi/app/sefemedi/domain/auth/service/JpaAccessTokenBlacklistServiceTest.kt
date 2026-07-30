@@ -3,7 +3,6 @@ package com.safemedi.app.sefemedi.domain.auth.service
 import com.safemedi.app.sefemedi.domain.auth.entity.AccessTokenBlacklist
 import com.safemedi.app.sefemedi.domain.auth.repository.AccessTokenBlacklistRepository
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -43,7 +42,7 @@ class JpaAccessTokenBlacklistServiceTest {
 
         verify(accessTokenBlacklistRepository).upsertTokenHash(
             tokenHash = tokenHash,
-            expiresAt = java.time.LocalDateTime.ofInstant(expiresAt, clock.zone),
+            expiresAt = LocalDateTime.ofInstant(expiresAt, clock.zone),
         )
     }
 

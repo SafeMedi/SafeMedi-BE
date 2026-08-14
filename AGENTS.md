@@ -92,6 +92,6 @@ Kotlin 2.2 · Spring Boot 4 · Spring Security · Spring Data JPA · Flyway · M
 - 브랜치와 PR 흐름은 `dev`를 개발 기준 브랜치로 본다.
 - `main` 직접 push/merge는 금지하고 PR로만 반영한다.
 - 커밋 요청을 받으면 직접 관여한 파일만 스테이징한다.
-- PR 제목은 티켓이 있으면 `[SAF-00] feat: ...` 형식을 따른다.
 - 커밋 메시지는 제목(축약형)만 작성한다. 본문 작성은 꼭 필요한 경우가 아니면 지양한다.
+- PR 제목은 티켓이 있으면 반드시 `[SAF-00] feat: ...` 형식을 따른다.
 - PR 본문은 반드시 `.github/PULL_REQUEST_TEMPLATE.md` 형식을 따른다.

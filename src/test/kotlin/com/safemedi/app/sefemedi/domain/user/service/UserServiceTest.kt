@@ -639,6 +639,35 @@ class UserServiceTest {
     }
 
     @Test
+    fun `completeTutorial는 FOOD 알러지 value가 20자 이상이면 INVALID_ALLERGY_FORMAT 예외를 던진다`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+            isTutorialCompleted = false,
+        )
+        val request = TutorialRequest(
+            birthDate = "1985-03-15",
+            gender = "MALE",
+            allergies = listOf(
+                TutorialAllergyRequest(
+                    type = "FOOD",
+                    value = "가".repeat(20),
+                    name = "땅콩",
+                ),
+            ),
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.completeTutorial("4903042739", request)
+        }
+
+        assertEquals(ErrorCode.INVALID_ALLERGY_FORMAT, exception.errorCode)
+    }
+
+    @Test
     fun `registerDeviceToken creates a new device token`() {
         val user = User(
             id = 1L,

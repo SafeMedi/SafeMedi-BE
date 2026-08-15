@@ -260,6 +260,8 @@ class UserService(
             throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
         }
 
+        validateFoodAllergyLength(type, value, name)
+
         return ParsedProfileAllergy(
             type = type,
             value = value,
@@ -277,8 +279,22 @@ class UserService(
         return when (parsedType) {
             AllergyType.ATC_GROUP,
             AllergyType.INGREDIENT,
-            AllergyType.CUSTOM -> parsedType
-            AllergyType.FOOD -> throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
+            AllergyType.CUSTOM,
+            AllergyType.FOOD -> parsedType
+        }
+    }
+
+    private fun validateFoodAllergyLength(
+        type: AllergyType,
+        value: String,
+        name: String,
+    ) {
+        if (type != AllergyType.FOOD) {
+            return
+        }
+
+        if (value.length >= FOOD_ALLERGY_MAX_LENGTH || name.length >= FOOD_ALLERGY_MAX_LENGTH) {
+            throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
         }
     }
 
@@ -401,9 +417,12 @@ class UserService(
 
         userAllergyRepository.saveAll(
             request.allergies.map { allergy ->
+                val allergyType = parseEnum<AllergyType>(allergy.type)
+                validateFoodAllergyLength(allergyType, allergy.value, allergy.name)
+
                 UserAllergy(
                     user = user,
-                    allergyType = parseEnum<AllergyType>(allergy.type),
+                    allergyType = allergyType,
                     allergyValue = allergy.value,
                     allergyName = allergy.name,
                 )
@@ -520,5 +539,6 @@ class UserService(
 
     private companion object {
         const val MAX_DEVICE_TOKEN_LENGTH = 512
+        const val FOOD_ALLERGY_MAX_LENGTH = 20
     }
 }

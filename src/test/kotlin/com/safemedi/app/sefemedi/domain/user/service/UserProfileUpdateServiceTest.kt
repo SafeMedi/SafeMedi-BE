@@ -316,7 +316,7 @@ class UserProfileUpdateServiceTest {
                 request = UserProfileUpdateRequest(
                     allergies = listOf(
                         UserProfileUpdateAllergyRequest(
-                            type = "FOOD",
+                            type = "UNKNOWN",
                             value = "Peanut",
                             name = "땅콩",
                         ),
@@ -326,5 +326,44 @@ class UserProfileUpdateServiceTest {
         }
 
         assertEquals(ErrorCode.INVALID_ALLERGY_FORMAT, exception.errorCode)
+    }
+
+    @Test
+    fun `updateMyProfile registers FOOD allergy with user-provided value`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+        given(userAllergyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
+            emptyList(),
+            emptyList(),
+        )
+        given(userDiseaseMapRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
+        given(familyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
+        given(userDeviceRepository.findFirstByUser_IdOrderByCreatedAtDesc(1L)).willReturn(null)
+
+        userService.updateMyProfile(
+            socialId = "4903042739",
+            request = UserProfileUpdateRequest(
+                allergies = listOf(
+                    UserProfileUpdateAllergyRequest(
+                        type = "FOOD",
+                        value = "Peanut",
+                        name = "땅콩",
+                    ),
+                ),
+            ),
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val allergyCaptor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<UserAllergy>>
+        verify(userAllergyRepository).saveAll(allergyCaptor.capture())
+        assertEquals(
+            listOf(AllergyType.FOOD),
+            allergyCaptor.value.map { it.allergyType },
+        )
     }
 }

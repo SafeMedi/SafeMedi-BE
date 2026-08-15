@@ -277,8 +277,8 @@ class UserService(
         return when (parsedType) {
             AllergyType.ATC_GROUP,
             AllergyType.INGREDIENT,
-            AllergyType.CUSTOM -> parsedType
-            AllergyType.FOOD -> throw BusinessException(ErrorCode.INVALID_ALLERGY_FORMAT)
+            AllergyType.CUSTOM,
+            AllergyType.FOOD -> parsedType
         }
     }
 

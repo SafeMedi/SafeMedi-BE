@@ -329,7 +329,7 @@ class UserProfileUpdateServiceTest {
     }
 
     @Test
-    fun `updateMyProfile registers FOOD allergy with user-provided value`() {
+    fun `updateMyProfile는 FOOD 타입 알러지를 사용자가 입력한 값으로 등록한다`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -365,5 +365,61 @@ class UserProfileUpdateServiceTest {
             listOf(AllergyType.FOOD),
             allergyCaptor.value.map { it.allergyType },
         )
+    }
+
+    @Test
+    fun `updateMyProfile는 FOOD 알러지 value가 20자 이상이면 INVALID_ALLERGY_FORMAT 예외를 던진다`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.updateMyProfile(
+                socialId = "4903042739",
+                request = UserProfileUpdateRequest(
+                    allergies = listOf(
+                        UserProfileUpdateAllergyRequest(
+                            type = "FOOD",
+                            value = "가".repeat(20),
+                            name = "땅콩",
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_ALLERGY_FORMAT, exception.errorCode)
+    }
+
+    @Test
+    fun `updateMyProfile는 FOOD 알러지 name이 20자 이상이면 INVALID_ALLERGY_FORMAT 예외를 던진다`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userHealthProfileRepository.findById(1L)).willReturn(Optional.empty())
+
+        val exception = assertThrows(BusinessException::class.java) {
+            userService.updateMyProfile(
+                socialId = "4903042739",
+                request = UserProfileUpdateRequest(
+                    allergies = listOf(
+                        UserProfileUpdateAllergyRequest(
+                            type = "FOOD",
+                            value = "Peanut",
+                            name = "땅콩".repeat(10),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_ALLERGY_FORMAT, exception.errorCode)
     }
 }

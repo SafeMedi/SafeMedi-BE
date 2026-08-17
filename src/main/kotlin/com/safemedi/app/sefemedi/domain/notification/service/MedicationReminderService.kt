@@ -26,33 +26,42 @@ class MedicationReminderService(
             endAt = now,
         )
 
-        records.forEach { record ->
-            notificationCreateService.create(
-                NotificationCreateCommand(
-                    userId = record.requireUserId(),
-                    type = NotificationType.MEDICATION_REMINDER,
-                    title = "약 복용 시간입니다",
-                    content = "${record.drugName()}을 복용할 시간이에요",
-                    targetType = NotificationTargetType.MEDICATION_RECORD,
-                    targetId = record.requireRecordId(),
-                    deduplicationKey = "MEDICATION_REMINDER:MEDICATION_RECORD:${record.requireRecordId()}:${record.requireUserId()}",
-                    scheduledAt = record.scheduledAt,
+        records.groupBy { it.groupKey() }
+            .forEach { (groupKey, groupRecords) ->
+                val drugNames = groupRecords.map { it.drugName() }.distinct()
+
+                notificationCreateService.create(
+                    NotificationCreateCommand(
+                        userId = groupKey.userId,
+                        type = NotificationType.MEDICATION_REMINDER,
+                        title = "약 복용 시간입니다",
+                        content = "${drugNames.joinToString(", ")}을 복용할 시간이에요",
+                        targetType = NotificationTargetType.PRESCRIPTION,
+                        targetId = groupKey.prescriptionId,
+                        deduplicationKey = "MEDICATION_REMINDER:PRESCRIPTION:${groupKey.prescriptionId}:${groupKey.scheduledAt}:${groupKey.userId}",
+                        scheduledAt = groupKey.scheduledAt,
+                    )
                 )
-            )
-        }
+            }
     }
 
-    private fun MedicationRecord.requireRecordId(): Long {
-        return requireNotNull(id)
-    }
-
-    private fun MedicationRecord.requireUserId(): Long {
-        return requireNotNull(user.id)
+    private fun MedicationRecord.groupKey(): ReminderGroupKey {
+        return ReminderGroupKey(
+            prescriptionId = requireNotNull(prescription.id),
+            scheduledAt = scheduledAt,
+            userId = requireNotNull(user.id),
+        )
     }
 
     private fun MedicationRecord.drugName(): String {
         return prescriptionDrugTime.prescriptionDrug.drugName
     }
+
+    private data class ReminderGroupKey(
+        val prescriptionId: Long,
+        val scheduledAt: LocalDateTime,
+        val userId: Long,
+    )
 
     private companion object {
         const val REMINDER_LOOKBACK_MINUTES = 5L

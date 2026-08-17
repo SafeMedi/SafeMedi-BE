@@ -28,6 +28,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class MedicationRecordUpdateServiceTest {
     private lateinit var userRepository: UserRepository
@@ -38,6 +39,18 @@ class MedicationRecordUpdateServiceTest {
     private val user = User(
         id = 1L,
         socialId = "kakao-123",
+    )
+    private val otherUser = User(
+        id = 2L,
+        socialId = "kakao-456",
+    )
+    private val scheduledAt = LocalDateTime.of(2026, 4, 6, 8, 0)
+    private val prescription = Prescription(
+        id = 10L,
+        user = user,
+        title = "Prescription",
+        startDate = LocalDate.of(2026, 4, 1),
+        endDate = LocalDate.of(2026, 4, 7),
     )
 
     @BeforeEach
@@ -54,26 +67,30 @@ class MedicationRecordUpdateServiceTest {
     }
 
     @Test
-    fun `복약 기록을 성공 처리한다`() {
-        val record = medicationRecord(status = MedicationStatus.PENDING)
+    fun `같은 처방전 시간대의 복약 기록 그룹을 한번에 성공 처리하고 알림은 1건만 생성한다`() {
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING),
+            medicationRecord(id = 501L, recordUser = user, drugName = "Aspirin", status = MedicationStatus.PENDING),
+        )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveById(500L)).willReturn(record)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 501L))).willReturn(records)
 
         val response = service.update(
             socialId = "kakao-123",
-            recordId = 500L,
             request = MedicationRecordUpdateRequest(
+                recordIds = listOf(500L, 501L),
                 status = MedicationStatus.SUCCESS,
             ),
         )
 
-        assertEquals(500L, response.recordId)
+        assertEquals(listOf(500L, 501L), response.recordIds)
         assertEquals(10L, response.prescriptionId)
         assertEquals(MedicationStatus.SUCCESS.name, response.status)
+        assertEquals(listOf("Tylenol", "Aspirin"), response.drugNames)
         assertNotNull(response.takenAt)
-        assertEquals(MedicationStatus.SUCCESS, record.status)
-        assertNotNull(record.takenAt)
+        assertTrue(records.all { it.status == MedicationStatus.SUCCESS })
+        assertTrue(records.all { it.takenAt != null })
 
         val command = mockingDetails(notificationCreateService)
             .invocations
@@ -82,45 +99,50 @@ class MedicationRecordUpdateServiceTest {
         assertEquals(1L, command.userId)
         assertEquals(NotificationType.MEDICATION_COMPLETED, command.type)
         assertEquals("복약 완료", command.title)
-        assertEquals("Tylenol 복용을 완료했어요", command.content)
-        assertEquals(NotificationTargetType.MEDICATION_RECORD, command.targetType)
-        assertEquals(500L, command.targetId)
-        assertEquals("MEDICATION_COMPLETED:MEDICATION_RECORD:500:1", command.deduplicationKey)
+        assertEquals("Tylenol, Aspirin 복용을 완료했어요", command.content)
+        assertEquals(NotificationTargetType.PRESCRIPTION, command.targetType)
+        assertEquals(10L, command.targetId)
+        assertEquals("MEDICATION_COMPLETED:PRESCRIPTION:10:$scheduledAt:1", command.deduplicationKey)
         assertNotNull(command.scheduledAt)
     }
 
     @Test
-    fun `복약 기록을 건너뜀 처리한다`() {
-        val record = medicationRecord(status = MedicationStatus.PENDING)
+    fun `복약 기록 그룹을 건너뜀 처리하면 알림을 생성하지 않는다`() {
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING),
+        )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveById(500L)).willReturn(record)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L))).willReturn(records)
 
         val response = service.update(
             socialId = "kakao-123",
-            recordId = 500L,
             request = MedicationRecordUpdateRequest(
+                recordIds = listOf(500L),
                 status = MedicationStatus.SKIP,
             ),
         )
 
         assertEquals(MedicationStatus.SKIP.name, response.status)
         assertNull(response.takenAt)
-        assertEquals(MedicationStatus.SKIP, record.status)
-        assertNull(record.takenAt)
+        assertEquals(MedicationStatus.SKIP, records.single().status)
         verifyNoInteractions(notificationCreateService)
     }
 
     @Test
-    fun `존재하지 않는 복약 기록이면 오류`() {
+    fun `요청한 recordIds 중 일부가 존재하지 않으면 오류`() {
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING),
+        )
+
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveById(999L)).willReturn(null)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 999L))).willReturn(records)
 
         val exception = assertFailsWith<BusinessException> {
             service.update(
                 socialId = "kakao-123",
-                recordId = 999L,
                 request = MedicationRecordUpdateRequest(
+                    recordIds = listOf(500L, 999L),
                     status = MedicationStatus.SUCCESS,
                 ),
             )
@@ -130,79 +152,134 @@ class MedicationRecordUpdateServiceTest {
     }
 
     @Test
-    fun `이미 처리된 복약 기록이면 오류`() {
-        val record = medicationRecord(status = MedicationStatus.SUCCESS)
+    fun `타인 소유 복약 기록이 섞여 있으면 오류`() {
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING),
+            medicationRecord(id = 502L, recordUser = otherUser, drugName = "Aspirin", status = MedicationStatus.PENDING),
+        )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveById(500L)).willReturn(record)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 502L))).willReturn(records)
 
         val exception = assertFailsWith<BusinessException> {
             service.update(
                 socialId = "kakao-123",
-                recordId = 500L,
                 request = MedicationRecordUpdateRequest(
+                    recordIds = listOf(500L, 502L),
+                    status = MedicationStatus.SUCCESS,
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.MEDICATION_RECORD_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `서로 다른 처방전 시간대 그룹이 섞여 있으면 오류`() {
+        val otherScheduledAt = scheduledAt.plusHours(4)
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING),
+            medicationRecord(
+                id = 503L,
+                recordUser = user,
+                drugName = "Aspirin",
+                status = MedicationStatus.PENDING,
+                recordScheduledAt = otherScheduledAt,
+            ),
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 503L))).willReturn(records)
+
+        val exception = assertFailsWith<BusinessException> {
+            service.update(
+                socialId = "kakao-123",
+                request = MedicationRecordUpdateRequest(
+                    recordIds = listOf(500L, 503L),
+                    status = MedicationStatus.SUCCESS,
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.errorCode)
+    }
+
+    @Test
+    fun `그룹 내 일부가 이미 처리되었으면 오류이고 상태가 바뀌지 않는다`() {
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING),
+            medicationRecord(id = 501L, recordUser = user, drugName = "Aspirin", status = MedicationStatus.SUCCESS),
+        )
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 501L))).willReturn(records)
+
+        val exception = assertFailsWith<BusinessException> {
+            service.update(
+                socialId = "kakao-123",
+                request = MedicationRecordUpdateRequest(
+                    recordIds = listOf(500L, 501L),
                     status = MedicationStatus.SKIP,
                 ),
             )
         }
 
         assertEquals(ErrorCode.MEDICATION_RECORD_ALREADY_PROCESSED, exception.errorCode)
+        assertEquals(MedicationStatus.PENDING, records[0].status)
+        assertEquals(MedicationStatus.SUCCESS, records[1].status)
+        verifyNoInteractions(notificationCreateService)
     }
 
     @Test
-    fun `이미 처리된 복약 기록을 대기 상태로 되돌린다`() {
-        val record = medicationRecord(status = MedicationStatus.SUCCESS).apply {
-            updateStatus(
-                status = MedicationStatus.SUCCESS,
-                takenAt = LocalDateTime.of(2026, 4, 6, 8, 5),
-            )
-        }
+    fun `이미 처리된 복약 기록 그룹을 대기 상태로 되돌린다`() {
+        val records = listOf(
+            medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.SUCCESS).apply {
+                updateStatus(status = MedicationStatus.SUCCESS, takenAt = LocalDateTime.of(2026, 4, 6, 8, 5))
+            },
+        )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveById(500L)).willReturn(record)
+        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L))).willReturn(records)
 
         val response = service.update(
             socialId = "kakao-123",
-            recordId = 500L,
             request = MedicationRecordUpdateRequest(
+                recordIds = listOf(500L),
                 status = MedicationStatus.PENDING,
             ),
         )
 
         assertEquals(MedicationStatus.PENDING.name, response.status)
         assertNull(response.takenAt)
-        assertEquals(MedicationStatus.PENDING, record.status)
-        assertNull(record.takenAt)
+        assertEquals(MedicationStatus.PENDING, records.single().status)
+        assertNull(records.single().takenAt)
         verifyNoInteractions(notificationCreateService)
     }
 
     private fun medicationRecord(
+        id: Long,
+        recordUser: User,
+        drugName: String,
         status: MedicationStatus,
+        recordScheduledAt: LocalDateTime = scheduledAt,
     ): MedicationRecord {
-        val prescription = Prescription(
-            id = 10L,
-            user = user,
-            title = "Prescription",
-            startDate = LocalDate.of(2026, 4, 1),
-            endDate = LocalDate.of(2026, 4, 7),
-        )
         val prescriptionDrug = PrescriptionDrug(
-            id = 20L,
+            id = id + 1000,
             prescription = prescription,
-            drugName = "Tylenol",
+            drugName = drugName,
         )
         val prescriptionDrugTime = PrescriptionDrugTime(
-            id = 30L,
+            id = id + 2000,
             prescriptionDrug = prescriptionDrug,
             takeTime = LocalTime.of(8, 0),
         )
 
         return MedicationRecord(
-            id = 500L,
-            user = user,
+            id = id,
+            user = recordUser,
             prescription = prescription,
             prescriptionDrugTime = prescriptionDrugTime,
-            scheduledAt = LocalDateTime.of(2026, 4, 6, 8, 0),
+            scheduledAt = recordScheduledAt,
             status = status,
         )
     }

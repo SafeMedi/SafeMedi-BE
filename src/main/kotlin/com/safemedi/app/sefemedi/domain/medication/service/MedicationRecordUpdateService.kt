@@ -26,21 +26,25 @@ class MedicationRecordUpdateService(
     @Transactional
     fun update(
         socialId: String,
-        recordId: Long,
         request: MedicationRecordUpdateRequest,
     ): MedicationRecordUpdateResponse {
         validateRequestedStatus(request.status)
+        if (request.recordIds.isEmpty()) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
 
         val user = userRepository.findBySocialId(socialId)
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
         val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
-        val record = medicationRecordRepository.findActiveById(recordId)
-            ?: throw BusinessException(ErrorCode.MEDICATION_RECORD_NOT_FOUND)
+        val records = medicationRecordRepository.findActiveAllByIdIn(request.recordIds)
 
-        if (record.user.id != userId) {
+        if (records.size != request.recordIds.size || records.any { it.user.id != userId }) {
             throw BusinessException(ErrorCode.MEDICATION_RECORD_NOT_FOUND)
         }
-        if (request.status != MedicationStatus.PENDING && record.status != MedicationStatus.PENDING) {
+        if (records.groupBy { it.prescription.id to it.scheduledAt }.size != 1) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
+        if (request.status != MedicationStatus.PENDING && records.any { it.status != MedicationStatus.PENDING }) {
             throw BusinessException(ErrorCode.MEDICATION_RECORD_ALREADY_PROCESSED)
         }
 
@@ -50,15 +54,17 @@ class MedicationRecordUpdateService(
             MedicationStatus.PENDING -> null
             MedicationStatus.FAIL -> throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
         }
-        record.updateStatus(
-            status = request.status,
-            takenAt = takenAt,
-        )
+        records.forEach {
+            it.updateStatus(
+                status = request.status,
+                takenAt = takenAt,
+            )
+        }
         if (request.status == MedicationStatus.SUCCESS) {
-            createMedicationCompletedNotification(record)
+            createMedicationCompletedNotification(records)
         }
 
-        return record.toResponse()
+        return records.toResponse()
     }
 
     private fun validateRequestedStatus(status: MedicationStatus) {
@@ -67,33 +73,36 @@ class MedicationRecordUpdateService(
         }
     }
 
-    private fun MedicationRecord.toResponse(): MedicationRecordUpdateResponse {
+    private fun List<MedicationRecord>.toResponse(): MedicationRecordUpdateResponse {
+        val firstRecord = first()
         return MedicationRecordUpdateResponse(
-            recordId = id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
-            prescriptionId = prescription.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
-            scheduledAt = scheduledAt,
-            takenAt = takenAt,
-            status = status.name,
+            recordIds = mapNotNull { it.id },
+            prescriptionId = firstRecord.prescription.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+            scheduledAt = firstRecord.scheduledAt,
+            drugNames = map { it.prescriptionDrugTime.prescriptionDrug.drugName }.distinct(),
+            takenAt = firstRecord.takenAt,
+            status = firstRecord.status.name,
         )
     }
 
     private fun createMedicationCompletedNotification(
-        record: MedicationRecord,
+        records: List<MedicationRecord>,
     ) {
-        val recordId = record.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
-        val userId = record.user.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
-        val drugName = record.prescriptionDrugTime.prescriptionDrug.drugName
+        val firstRecord = records.first()
+        val prescriptionId = firstRecord.prescription.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val userId = firstRecord.user.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val drugNames = records.map { it.prescriptionDrugTime.prescriptionDrug.drugName }.distinct()
 
         notificationCreateService.create(
             NotificationCreateCommand(
                 userId = userId,
                 type = NotificationType.MEDICATION_COMPLETED,
                 title = "복약 완료",
-                content = "${drugName} 복용을 완료했어요",
-                targetType = NotificationTargetType.MEDICATION_RECORD,
-                targetId = recordId,
-                deduplicationKey = "MEDICATION_COMPLETED:MEDICATION_RECORD:$recordId:$userId",
-                scheduledAt = record.takenAt,
+                content = "${drugNames.joinToString(", ")} 복용을 완료했어요",
+                targetType = NotificationTargetType.PRESCRIPTION,
+                targetId = prescriptionId,
+                deduplicationKey = "MEDICATION_COMPLETED:PRESCRIPTION:$prescriptionId:${firstRecord.scheduledAt}:$userId",
+                scheduledAt = firstRecord.takenAt,
             )
         )
     }

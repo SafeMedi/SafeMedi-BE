@@ -14,7 +14,6 @@ import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -67,15 +66,13 @@ class MedicationRecordController(
         )
     }
 
-    @PatchMapping("/{recordId}")
+    @PatchMapping
     fun update(
         @AuthenticationPrincipal socialId: String?,
-        @PathVariable recordId: Long,
         @RequestBody request: MedicationRecordUpdateRequest,
     ): MedicationRecordUpdateResponse {
         return medicationRecordUpdateService.update(
             socialId = socialId ?: throw BusinessException(ErrorCode.INVALID_TOKEN),
-            recordId = recordId,
             request = request,
         )
     }

@@ -171,6 +171,22 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
         """
         select mr
         from MedicationRecord mr
+        join fetch mr.user u
+        join fetch mr.prescription p
+        join fetch mr.prescriptionDrugTime pdt
+        join fetch pdt.prescriptionDrug pd
+        where mr.id in :recordIds
+          and p.deletedAt is null
+        """
+    )
+    fun findActiveAllByIdIn(
+        @Param("recordIds") recordIds: Collection<Long>,
+    ): List<MedicationRecord>
+
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
         join fetch mr.prescription p
         join fetch mr.prescriptionDrugTime pdt
         join fetch pdt.prescriptionDrug pd

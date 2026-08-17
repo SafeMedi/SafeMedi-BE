@@ -68,10 +68,39 @@ class MedicationReminderServiceTest {
         assertEquals(NotificationType.MEDICATION_REMINDER, command.type)
         assertEquals("약 복용 시간입니다", command.title)
         assertEquals("Tylenol을 복용할 시간이에요", command.content)
-        assertEquals(NotificationTargetType.MEDICATION_RECORD, command.targetType)
-        assertEquals(500L, command.targetId)
-        assertEquals("MEDICATION_REMINDER:MEDICATION_RECORD:500:1", command.deduplicationKey)
+        assertEquals(NotificationTargetType.PRESCRIPTION, command.targetType)
+        assertEquals(10L, command.targetId)
+        assertEquals("MEDICATION_REMINDER:PRESCRIPTION:10:${record.scheduledAt}:1", command.deduplicationKey)
         assertEquals(record.scheduledAt, command.scheduledAt)
+    }
+
+    @Test
+    fun `같은 처방전 같은 시각의 약물 여러 건은 리마인더 알림 1건으로 합쳐진다`() {
+        val now = LocalDateTime.of(2026, 6, 27, 9, 0)
+        val scheduledAt = LocalDateTime.of(2026, 6, 27, 8, 58)
+        val first = medicationRecord(scheduledAt = scheduledAt)
+        val second = medicationRecord(
+            scheduledAt = scheduledAt,
+            recordId = 501L,
+            drugName = "Aspirin",
+        )
+
+        given(
+            medicationRecordRepository.findPendingRecordsScheduledBetween(
+                status = MedicationStatus.PENDING,
+                startAt = now.minusMinutes(5),
+                endAt = now,
+            )
+        ).willReturn(listOf(first, second))
+
+        medicationReminderService.createDueReminders(now)
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+        assertEquals("Tylenol, Aspirin을 복용할 시간이에요", command.content)
+        assertEquals("MEDICATION_REMINDER:PRESCRIPTION:10:$scheduledAt:1", command.deduplicationKey)
     }
 
     @Test
@@ -114,6 +143,8 @@ class MedicationReminderServiceTest {
 
     private fun medicationRecord(
         scheduledAt: LocalDateTime,
+        recordId: Long = 500L,
+        drugName: String = "Tylenol",
     ): MedicationRecord {
         val prescription = Prescription(
             id = 10L,
@@ -123,18 +154,18 @@ class MedicationReminderServiceTest {
             endDate = LocalDate.of(2026, 6, 30),
         )
         val prescriptionDrug = PrescriptionDrug(
-            id = 20L,
+            id = recordId + 1000,
             prescription = prescription,
-            drugName = "Tylenol",
+            drugName = drugName,
         )
         val prescriptionDrugTime = PrescriptionDrugTime(
-            id = 30L,
+            id = recordId + 2000,
             prescriptionDrug = prescriptionDrug,
             takeTime = LocalTime.of(9, 0),
         )
 
         return MedicationRecord(
-            id = 500L,
+            id = recordId,
             user = user,
             prescription = prescription,
             prescriptionDrugTime = prescriptionDrugTime,

@@ -29,21 +29,23 @@ class MedicationRecordUpdateService(
         request: MedicationRecordUpdateRequest,
     ): MedicationRecordUpdateResponse {
         validateRequestedStatus(request.status)
-        if (request.recordIds.isEmpty()) {
+        val requestedIds = request.recordIds.toSet()
+        if (requestedIds.isEmpty()) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
 
         val user = userRepository.findBySocialId(socialId)
             ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
         val userId = user.id ?: throw BusinessException(ErrorCode.INVALID_TOKEN)
-        val records = medicationRecordRepository.findActiveAllByIdIn(request.recordIds)
+        val records = medicationRecordRepository.findActiveAllByIdIn(requestedIds)
 
-        if (records.size != request.recordIds.size || records.any { it.user.id != userId }) {
+        if (records.mapNotNull { it.id }.toSet() != requestedIds || records.any { it.user.id != userId }) {
             throw BusinessException(ErrorCode.MEDICATION_RECORD_NOT_FOUND)
         }
         if (records.groupBy { it.prescription.id to it.scheduledAt }.size != 1) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
+        validateGroupIsComplete(records, userId)
         if (request.status != MedicationStatus.PENDING && records.any { it.status != MedicationStatus.PENDING }) {
             throw BusinessException(ErrorCode.MEDICATION_RECORD_ALREADY_PROCESSED)
         }
@@ -70,6 +72,23 @@ class MedicationRecordUpdateService(
     private fun validateRequestedStatus(status: MedicationStatus) {
         if (status !in ALLOWED_REQUEST_STATUSES) {
             throw BusinessException(ErrorCode.INVALID_ENUM_VALUE)
+        }
+    }
+
+    private fun validateGroupIsComplete(
+        records: List<MedicationRecord>,
+        userId: Long,
+    ) {
+        val anchor = records.first()
+        val prescriptionId = anchor.prescription.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val fullGroupIds = medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(
+            prescriptionId = prescriptionId,
+            scheduledAt = anchor.scheduledAt,
+            userId = userId,
+        ).mapNotNull { it.id }.toSet()
+
+        if (fullGroupIds != records.mapNotNull { it.id }.toSet()) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
     }
 

@@ -74,7 +74,10 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 501L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L, 501L))).willReturn(records)
+        given(
+            medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(10L, scheduledAt, 1L)
+        ).willReturn(records)
 
         val response = service.update(
             socialId = "kakao-123",
@@ -113,7 +116,10 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L))).willReturn(records)
+        given(
+            medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(10L, scheduledAt, 1L)
+        ).willReturn(records)
 
         val response = service.update(
             socialId = "kakao-123",
@@ -136,7 +142,7 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 999L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L, 999L))).willReturn(records)
 
         val exception = assertFailsWith<BusinessException> {
             service.update(
@@ -159,7 +165,7 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 502L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L, 502L))).willReturn(records)
 
         val exception = assertFailsWith<BusinessException> {
             service.update(
@@ -189,7 +195,7 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 503L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L, 503L))).willReturn(records)
 
         val exception = assertFailsWith<BusinessException> {
             service.update(
@@ -212,7 +218,10 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L, 501L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L, 501L))).willReturn(records)
+        given(
+            medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(10L, scheduledAt, 1L)
+        ).willReturn(records)
 
         val exception = assertFailsWith<BusinessException> {
             service.update(
@@ -239,7 +248,10 @@ class MedicationRecordUpdateServiceTest {
         )
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(user)
-        given(medicationRecordRepository.findActiveAllByIdIn(listOf(500L))).willReturn(records)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L))).willReturn(records)
+        given(
+            medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(10L, scheduledAt, 1L)
+        ).willReturn(records)
 
         val response = service.update(
             socialId = "kakao-123",
@@ -254,6 +266,55 @@ class MedicationRecordUpdateServiceTest {
         assertEquals(MedicationStatus.PENDING, records.single().status)
         assertNull(records.single().takenAt)
         verifyNoInteractions(notificationCreateService)
+    }
+
+    @Test
+    fun `그룹의 일부 recordIds만 요청하면 오류이고 상태가 바뀌지 않는다`() {
+        val requested = medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING)
+        val sibling = medicationRecord(id = 501L, recordUser = user, drugName = "Aspirin", status = MedicationStatus.PENDING)
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L))).willReturn(listOf(requested))
+        given(
+            medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(10L, scheduledAt, 1L)
+        ).willReturn(listOf(requested, sibling))
+
+        val exception = assertFailsWith<BusinessException> {
+            service.update(
+                socialId = "kakao-123",
+                request = MedicationRecordUpdateRequest(
+                    recordIds = listOf(500L),
+                    status = MedicationStatus.SUCCESS,
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.errorCode)
+        assertEquals(MedicationStatus.PENDING, requested.status)
+        assertEquals(MedicationStatus.PENDING, sibling.status)
+        verifyNoInteractions(notificationCreateService)
+    }
+
+    @Test
+    fun `recordIds에 중복이 있어도 정상 처리된다`() {
+        val record = medicationRecord(id = 500L, recordUser = user, drugName = "Tylenol", status = MedicationStatus.PENDING)
+
+        given(userRepository.findBySocialId("kakao-123")).willReturn(user)
+        given(medicationRecordRepository.findActiveAllByIdIn(setOf(500L))).willReturn(listOf(record))
+        given(
+            medicationRecordRepository.findAllByPrescriptionIdAndScheduledAtAndUserId(10L, scheduledAt, 1L)
+        ).willReturn(listOf(record))
+
+        val response = service.update(
+            socialId = "kakao-123",
+            request = MedicationRecordUpdateRequest(
+                recordIds = listOf(500L, 500L),
+                status = MedicationStatus.SUCCESS,
+            ),
+        )
+
+        assertEquals(listOf(500L), response.recordIds)
+        assertEquals(MedicationStatus.SUCCESS, record.status)
     }
 
     private fun medicationRecord(

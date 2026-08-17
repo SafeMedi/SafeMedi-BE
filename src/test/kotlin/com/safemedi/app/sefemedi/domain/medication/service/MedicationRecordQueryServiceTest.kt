@@ -102,7 +102,7 @@ class MedicationRecordQueryServiceTest {
         assertEquals(2, response.summary.takenCount)
         assertEquals("2/3", response.summary.fraction)
         assertEquals(2, response.records?.size)
-        assertEquals(500L, response.records?.first()?.recordId)
+        assertEquals(listOf(500L, 501L), response.records?.first()?.recordIds)
         assertEquals(listOf("Norvasc", "Aspirin"), response.records?.first()?.medicationNames)
         assertEquals("08:05", response.records?.first()?.takenTime)
         assertEquals(null, response.dailyRecords)
@@ -141,7 +141,7 @@ class MedicationRecordQueryServiceTest {
         assertEquals(LocalDate.of(2026, 5, 31), response.periodEndDate)
         assertEquals(1, response.summary.totalCount)
         assertEquals("1/1", response.dailyRecords?.single()?.fraction)
-        assertEquals(500L, response.dailyRecords?.single()?.items?.single()?.recordId)
+        assertEquals(listOf(500L), response.dailyRecords?.single()?.items?.single()?.recordIds)
         assertEquals(null, response.records)
     }
 

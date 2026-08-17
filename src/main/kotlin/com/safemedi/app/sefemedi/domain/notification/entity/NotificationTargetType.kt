@@ -5,4 +5,5 @@ enum class NotificationTargetType {
     PRESCRIPTION,
     REPORT,
     SYSTEM,
+    FAMILY,
 }

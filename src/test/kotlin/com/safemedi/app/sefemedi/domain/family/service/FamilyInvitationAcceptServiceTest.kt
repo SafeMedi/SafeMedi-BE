@@ -5,6 +5,10 @@ import com.safemedi.app.sefemedi.domain.family.entity.FamilyInvitation
 import com.safemedi.app.sefemedi.domain.family.entity.FamilyInvitationStatus
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyInvitationRepository
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationTargetType
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
@@ -17,6 +21,7 @@ import org.mockito.ArgumentCaptor
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.any
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
@@ -30,6 +35,7 @@ class FamilyInvitationAcceptServiceTest {
     private lateinit var familyInvitationRepository: FamilyInvitationRepository
     private lateinit var familyRepository: FamilyRepository
     private lateinit var tokenHasher: FamilyInvitationTokenHasher
+    private lateinit var notificationCreateService: NotificationCreateService
     private lateinit var service: FamilyInvitationAcceptService
 
     private val acceptingUser = User(id = 1L, nickname = "수락자", socialId = "kakao-123")
@@ -43,11 +49,13 @@ class FamilyInvitationAcceptServiceTest {
         familyInvitationRepository = mock(FamilyInvitationRepository::class.java)
         familyRepository = mock(FamilyRepository::class.java)
         tokenHasher = mock(FamilyInvitationTokenHasher::class.java)
+        notificationCreateService = mock(NotificationCreateService::class.java)
         service = FamilyInvitationAcceptService(
             userRepository = userRepository,
             familyInvitationRepository = familyInvitationRepository,
             familyRepository = familyRepository,
             tokenHasher = tokenHasher,
+            notificationCreateService = notificationCreateService,
             clock = Clock.fixed(nowInstant, ZoneId.of("Asia/Seoul")),
         )
 
@@ -72,7 +80,12 @@ class FamilyInvitationAcceptServiceTest {
                     relation = family.relation,
                 )
             } else {
-                family
+                Family(
+                    id = 13L,
+                    user = family.user,
+                    connectedUser = family.connectedUser,
+                    relation = family.relation,
+                )
             }
         }
 
@@ -94,6 +107,44 @@ class FamilyInvitationAcceptServiceTest {
         assertEquals(FamilyInvitationStatus.ACCEPTED, invitation.status)
         assertEquals(acceptingUser, invitation.acceptedBy)
         assertEquals(now, invitation.acceptedAt)
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+        assertEquals(2L, command.userId)
+        assertEquals(NotificationType.FAMILY_CONNECTED, command.type)
+        assertEquals("수락자님과 가족으로 연결되었어요", command.content)
+        assertEquals(NotificationTargetType.FAMILY, command.targetType)
+        assertEquals(13L, command.targetId)
+        assertEquals("FAMILY_CONNECTED:FAMILY:13:2", command.deduplicationKey)
+    }
+
+    @Test
+    fun `수락자 닉네임이 없으면 이름 없이 알림 문구를 만든다`() {
+        val nicknameLessAcceptingUser = User(id = 1L, nickname = null, socialId = "kakao-123")
+        given(userRepository.findBySocialId("kakao-123")).willReturn(nicknameLessAcceptingUser)
+        val invitation = invitation()
+
+        given(familyInvitationRepository.findByTokenHashForUpdate("token-hash")).willReturn(invitation)
+        given(familyRepository.countConnectionsBetween(1L, 2L)).willReturn(0L)
+        given(familyRepository.save(any(Family::class.java))).willAnswer { invocation ->
+            val family = invocation.getArgument<Family>(0)
+            Family(
+                id = if (family.user.id == nicknameLessAcceptingUser.id) 12L else 13L,
+                user = family.user,
+                connectedUser = family.connectedUser,
+                relation = family.relation,
+            )
+        }
+
+        service.accept("kakao-123", "raw-token")
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+        assertEquals("가족으로 연결되었어요", command.content)
     }
 
     @Test

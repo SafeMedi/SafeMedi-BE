@@ -21,7 +21,7 @@ data class MedicationRecordSummaryResponse(
 )
 
 data class DailyMedicationRecordItemResponse(
-    val recordId: Long,
+    val recordIds: List<Long>,
     val prescriptionTitle: String,
     val medicationNames: List<String>,
     val scheduledTime: String,
@@ -38,7 +38,7 @@ data class PeriodMedicationRecordGroupResponse(
 )
 
 data class PeriodMedicationRecordItemResponse(
-    val recordId: Long,
+    val recordIds: List<Long>,
     val prescriptionTitle: String,
     val scheduledTime: String,
     val status: String,

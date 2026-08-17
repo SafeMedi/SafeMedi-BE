@@ -98,6 +98,8 @@ class NotificationCreateService(
     ): Boolean {
         return when (type) {
             NotificationType.MEDICATION_REMINDER -> latestDevice.isMyReminderOn
+            NotificationType.FAMILY_CONNECTED,
+            NotificationType.FAMILY_DISCONNECTED -> latestDevice.isFamilyReminderOn
             NotificationType.MEDICATION_COMPLETED,
             NotificationType.DRUG_INTERACTION_WARNING,
             NotificationType.TODAY_MEDICATION_SCHEDULE,

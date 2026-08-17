@@ -5,6 +5,11 @@ import com.safemedi.app.sefemedi.domain.family.entity.Family
 import com.safemedi.app.sefemedi.domain.family.entity.FamilyInvitationStatus
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyInvitationRepository
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationTargetType
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
+import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
@@ -20,6 +25,7 @@ class FamilyInvitationAcceptService(
     private val familyInvitationRepository: FamilyInvitationRepository,
     private val familyRepository: FamilyRepository,
     private val tokenHasher: FamilyInvitationTokenHasher,
+    private val notificationCreateService: NotificationCreateService,
     private val clock: Clock,
 ) {
 
@@ -67,7 +73,7 @@ class FamilyInvitationAcceptService(
                 relation = DEFAULT_RELATION,
             )
         )
-        familyRepository.save(
+        val inviterFamily = familyRepository.save(
             Family(
                 user = inviter,
                 connectedUser = acceptingUser,
@@ -78,11 +84,41 @@ class FamilyInvitationAcceptService(
         val familyId = acceptingUserFamily.id
             ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
 
+        createFamilyConnectedNotification(
+            inviter = inviter,
+            acceptingUser = acceptingUser,
+            inviterFamily = inviterFamily,
+        )
+
         return FamilyInvitationAcceptResponse(
             familyId = familyId,
             name = inviterName,
             relation = DEFAULT_RELATION,
             connectedAt = acceptedInstant,
+        )
+    }
+
+    private fun createFamilyConnectedNotification(
+        inviter: User,
+        acceptingUser: User,
+        inviterFamily: Family,
+    ) {
+        val inviterId = inviter.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val inviterFamilyId = inviterFamily.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
+        val content = acceptingUser.nickname
+            ?.let { "${it}님과 가족으로 연결되었어요" }
+            ?: "가족으로 연결되었어요"
+
+        notificationCreateService.create(
+            NotificationCreateCommand(
+                userId = inviterId,
+                type = NotificationType.FAMILY_CONNECTED,
+                title = "가족 연결",
+                content = content,
+                targetType = NotificationTargetType.FAMILY,
+                targetId = inviterFamilyId,
+                deduplicationKey = "FAMILY_CONNECTED:FAMILY:$inviterFamilyId:$inviterId",
+            )
         )
     }
 

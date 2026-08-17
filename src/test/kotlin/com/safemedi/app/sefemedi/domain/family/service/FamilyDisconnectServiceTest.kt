@@ -2,6 +2,9 @@ package com.safemedi.app.sefemedi.domain.family.service
 
 import com.safemedi.app.sefemedi.domain.family.entity.Family
 import com.safemedi.app.sefemedi.domain.family.repository.FamilyRepository
+import com.safemedi.app.sefemedi.domain.notification.dto.NotificationCreateCommand
+import com.safemedi.app.sefemedi.domain.notification.entity.NotificationType
+import com.safemedi.app.sefemedi.domain.notification.service.NotificationCreateService
 import com.safemedi.app.sefemedi.domain.user.entity.User
 import com.safemedi.app.sefemedi.domain.user.repository.UserRepository
 import com.safemedi.app.sefemedi.global.error.BusinessException
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.anyList
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
@@ -21,6 +25,7 @@ class FamilyDisconnectServiceTest {
 
     private lateinit var userRepository: UserRepository
     private lateinit var familyRepository: FamilyRepository
+    private lateinit var notificationCreateService: NotificationCreateService
     private lateinit var service: FamilyDisconnectService
 
     private val currentUser = User(id = 2L, nickname = "홍길동", socialId = "kakao-123")
@@ -30,13 +35,14 @@ class FamilyDisconnectServiceTest {
     fun setUp() {
         userRepository = mock(UserRepository::class.java)
         familyRepository = mock(FamilyRepository::class.java)
-        service = FamilyDisconnectService(userRepository, familyRepository)
+        notificationCreateService = mock(NotificationCreateService::class.java)
+        service = FamilyDisconnectService(userRepository, familyRepository, notificationCreateService)
 
         given(userRepository.findBySocialId("kakao-123")).willReturn(currentUser)
     }
 
     @Test
-    fun `가족 연동을 해제하면 잠근 양방향 관계를 모두 삭제한다`() {
+    fun `가족 연동을 해제하면 잠근 양방향 관계를 모두 삭제하고 상대방에게만 알림을 보낸다`() {
         val currentUserFamily = family(12L, currentUser, connectedUser)
         val connectedUserFamily = family(13L, connectedUser, currentUser)
         val connections = listOf(currentUserFamily, connectedUserFamily)
@@ -47,6 +53,34 @@ class FamilyDisconnectServiceTest {
 
         verify(familyRepository).findConnectionsBetweenForUpdate(1L, 2L)
         verify(familyRepository).deleteAll(connections)
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+        assertEquals(1L, command.userId)
+        assertEquals(NotificationType.FAMILY_DISCONNECTED, command.type)
+        assertEquals("홍길동님과의 가족 연결이 해제되었어요", command.content)
+        assertEquals("FAMILY_DISCONNECTED:FAMILY:12:1", command.deduplicationKey)
+    }
+
+    @Test
+    fun `해제를 실행한 본인의 닉네임이 없으면 이름 없이 알림 문구를 만든다`() {
+        val nicknameLessCurrentUser = User(id = 2L, nickname = null, socialId = "kakao-123")
+        given(userRepository.findBySocialId("kakao-123")).willReturn(nicknameLessCurrentUser)
+        val currentUserFamily = family(12L, nicknameLessCurrentUser, connectedUser)
+        val connectedUserFamily = family(13L, connectedUser, nicknameLessCurrentUser)
+        val connections = listOf(currentUserFamily, connectedUserFamily)
+        given(familyRepository.findWithConnectedUserById(12L)).willReturn(currentUserFamily)
+        given(familyRepository.findConnectionsBetweenForUpdate(1L, 2L)).willReturn(connections)
+
+        service.disconnect("kakao-123", 12L)
+
+        val command = mockingDetails(notificationCreateService)
+            .invocations
+            .single()
+            .arguments[0] as NotificationCreateCommand
+        assertEquals("가족 연결이 해제되었어요", command.content)
     }
 
     @Test

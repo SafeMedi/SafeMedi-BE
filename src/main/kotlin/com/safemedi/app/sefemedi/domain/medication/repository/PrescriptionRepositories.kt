@@ -5,9 +5,11 @@ import com.safemedi.app.sefemedi.domain.medication.entity.MedicationStatus
 import com.safemedi.app.sefemedi.domain.medication.entity.Prescription
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrug
 import com.safemedi.app.sefemedi.domain.medication.entity.PrescriptionDrugTime
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -166,6 +168,38 @@ interface MedicationRecordRepository : JpaRepository<MedicationRecord, Long> {
     fun findActiveById(
         @Param("recordId") recordId: Long,
     ): MedicationRecord?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
+        join fetch mr.user u
+        join fetch mr.prescription p
+        join fetch mr.prescriptionDrugTime pdt
+        join fetch pdt.prescriptionDrug pd
+        where mr.id in :recordIds
+          and p.deletedAt is null
+        """
+    )
+    fun findActiveAllByIdIn(
+        @Param("recordIds") recordIds: Collection<Long>,
+    ): List<MedicationRecord>
+
+    @Query(
+        """
+        select mr
+        from MedicationRecord mr
+        where mr.prescription.id = :prescriptionId
+          and mr.scheduledAt = :scheduledAt
+          and mr.user.id = :userId
+        """
+    )
+    fun findAllByPrescriptionIdAndScheduledAtAndUserId(
+        @Param("prescriptionId") prescriptionId: Long,
+        @Param("scheduledAt") scheduledAt: LocalDateTime,
+        @Param("userId") userId: Long,
+    ): List<MedicationRecord>
 
     @Query(
         """

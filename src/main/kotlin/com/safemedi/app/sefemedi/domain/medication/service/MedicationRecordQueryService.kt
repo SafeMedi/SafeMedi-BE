@@ -196,7 +196,7 @@ class MedicationRecordQueryService(
     private fun List<MedicationRecord>.toDailyItem(): DailyMedicationRecordItemResponse {
         val firstRecord = first()
         return DailyMedicationRecordItemResponse(
-            recordId = firstRecord.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+            recordIds = mapNotNull { it.id },
             prescriptionTitle = firstRecord.prescription.title,
             medicationNames = map { it.prescriptionDrugTime.prescriptionDrug.drugName }.distinct(),
             scheduledTime = firstRecord.scheduledAt.toLocalTime().format(TIME_FORMATTER),
@@ -232,7 +232,7 @@ class MedicationRecordQueryService(
     private fun List<MedicationRecord>.toPeriodItem(): PeriodMedicationRecordItemResponse {
         val firstRecord = first()
         return PeriodMedicationRecordItemResponse(
-            recordId = firstRecord.id ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+            recordIds = mapNotNull { it.id },
             prescriptionTitle = firstRecord.prescription.title,
             scheduledTime = firstRecord.scheduledAt.toLocalTime().format(TIME_FORMATTER),
             status = resolveGroupStatus().name,

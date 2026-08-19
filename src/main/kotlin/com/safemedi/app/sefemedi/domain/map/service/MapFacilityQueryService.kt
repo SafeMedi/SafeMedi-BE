@@ -7,14 +7,24 @@ import com.safemedi.app.sefemedi.domain.map.dto.FacilityResponse
 import com.safemedi.app.sefemedi.domain.map.dto.MapFacilitiesResponse
 import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @Service
 class MapFacilityQueryService(
     private val facilitySearchClient: MedicalFacilitySearchClient,
 ) {
+    private val facilitySearchExecutor: ExecutorService = Executors.newFixedThreadPool(EXTERNAL_CALL_POOL_SIZE)
+
+    @PreDestroy
+    fun shutdownExecutor() {
+        facilitySearchExecutor.shutdown()
+    }
+
     fun getFacilities(
         latitude: Double?,
         longitude: Double?,
@@ -43,9 +53,10 @@ class MapFacilityQueryService(
     ): List<RawFacility> {
         val categories = category?.let { listOf(it) } ?: FacilityCategory.entries
         val futures = categories.map { searchCategory ->
-            CompletableFuture.supplyAsync {
-                searchCategoryFacilities(searchCategory, keyword, latitude, longitude)
-            }
+            CompletableFuture.supplyAsync(
+                { searchCategoryFacilities(searchCategory, keyword, latitude, longitude) },
+                facilitySearchExecutor,
+            )
         }
         return futures.flatMap { it.join() }
     }
@@ -136,6 +147,7 @@ class MapFacilityQueryService(
         const val MAX_LATITUDE = 90.0
         const val MIN_LONGITUDE = -180.0
         const val MAX_LONGITUDE = 180.0
+        const val EXTERNAL_CALL_POOL_SIZE = 4
 
         val MOCK_FACILITIES = listOf(
             RawFacility(

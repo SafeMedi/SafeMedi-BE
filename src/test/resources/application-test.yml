@@ -17,3 +17,7 @@ app:
   family-invitation:
     base-url: https://test.example.com/invite
     token-encryption-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+kakao:
+  local-api:
+    rest-api-key: test-kakao-rest-api-key

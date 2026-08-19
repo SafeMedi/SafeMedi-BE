@@ -277,4 +277,14 @@ enum class ErrorCode(
         "USER_002",
         "이미 탈퇴 처리가 진행된 사용자입니다.",
     ),
+    INVALID_COORDINATES(
+        HttpStatus.BAD_REQUEST,
+        "VAL_009",
+        "latitude/longitude 값이 없거나 유효 범위를 벗어났습니다.",
+    ),
+    INVALID_FACILITY_CATEGORY(
+        HttpStatus.BAD_REQUEST,
+        "VAL_010",
+        "category는 all, pharmacy, emergency 중 하나여야 합니다.",
+    ),
 }

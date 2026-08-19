@@ -33,6 +33,10 @@ app:
     base-url: ${FAMILY_INVITATION_BASE_URL}
     token-encryption-key: ${FAMILY_INVITATION_TOKEN_ENCRYPTION_KEY}
 
+kakao:
+  local-api:
+    rest-api-key: ${KAKAO_REST_API_KEY}
+
 firebase:
   enabled: ${FIREBASE_ENABLED:false}
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}

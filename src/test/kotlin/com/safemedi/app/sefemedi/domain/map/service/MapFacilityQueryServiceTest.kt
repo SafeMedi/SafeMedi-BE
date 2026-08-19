@@ -85,6 +85,35 @@ class MapFacilityQueryServiceTest {
     }
 
     @Test
+    fun `category가 all이고 한 카테고리만 실패하면 성공한 카테고리 결과는 유지된다`() {
+        given(
+            facilitySearchClient.search(FacilityCategory.PHARMACY, "약국", latitude, longitude)
+        ).willReturn(listOf(pharmacy(name = "온누리약국", roadAddress = "테헤란로 123", distanceMeters = 300)))
+        given(
+            facilitySearchClient.search(FacilityCategory.EMERGENCY, "응급실", latitude, longitude)
+        ).willThrow(RuntimeException("카카오 API 오류"))
+
+        val response = mapFacilityQueryService.getFacilities(latitude, longitude, "all", "")
+
+        assertEquals("kakao", response.source)
+        assertEquals(listOf("온누리약국"), response.facilities.map { it.name })
+    }
+
+    @Test
+    fun `상호명과 도로명주소가 같아도 카테고리가 다르면 둘 다 남긴다`() {
+        given(
+            facilitySearchClient.search(FacilityCategory.PHARMACY, "약국", latitude, longitude)
+        ).willReturn(listOf(pharmacy(name = "온누리약국", roadAddress = "테헤란로 123", distanceMeters = 300)))
+        given(
+            facilitySearchClient.search(FacilityCategory.EMERGENCY, "응급실", latitude, longitude)
+        ).willReturn(listOf(emergency(name = "온누리약국", roadAddress = "테헤란로 123", distanceMeters = 900)))
+
+        val response = mapFacilityQueryService.getFacilities(latitude, longitude, "all", "")
+
+        assertEquals(2, response.facilities.size)
+    }
+
+    @Test
     fun `카카오 API 호출이 실패하면 mock 데이터를 반환한다`() {
         given(
             facilitySearchClient.search(FacilityCategory.PHARMACY, "약국", latitude, longitude)

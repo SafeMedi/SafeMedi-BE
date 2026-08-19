@@ -9,6 +9,7 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.util.concurrent.CompletableFuture
 
 @Service
 class MapFacilityQueryService(
@@ -20,11 +21,11 @@ class MapFacilityQueryService(
         category: String,
         keyword: String,
     ): MapFacilitiesResponse {
-        validateCoordinates(latitude, longitude)
+        val (validLatitude, validLongitude) = requireValidCoordinates(latitude, longitude)
         val facilityCategory = resolveCategory(category)
         val normalizedKeyword = keyword.trim()
 
-        val rawResults = fetchFacilities(facilityCategory, normalizedKeyword, latitude!!, longitude!!)
+        val rawResults = fetchFacilities(facilityCategory, normalizedKeyword, validLatitude, validLongitude)
         val facilities = dedupAndSort(rawResults)
 
         return if (facilities.isEmpty()) {
@@ -41,17 +42,29 @@ class MapFacilityQueryService(
         longitude: Double,
     ): List<RawFacility> {
         val categories = category?.let { listOf(it) } ?: FacilityCategory.entries
-        return try {
-            categories.flatMap { searchCategory ->
-                facilitySearchClient.search(
-                    category = searchCategory,
-                    query = buildQuery(searchCategory, keyword),
-                    latitude = latitude,
-                    longitude = longitude,
-                )
+        val futures = categories.map { searchCategory ->
+            CompletableFuture.supplyAsync {
+                searchCategoryFacilities(searchCategory, keyword, latitude, longitude)
             }
+        }
+        return futures.flatMap { it.join() }
+    }
+
+    private fun searchCategoryFacilities(
+        category: FacilityCategory,
+        keyword: String,
+        latitude: Double,
+        longitude: Double,
+    ): List<RawFacility> {
+        return try {
+            facilitySearchClient.search(
+                category = category,
+                query = buildQuery(category, keyword),
+                latitude = latitude,
+                longitude = longitude,
+            )
         } catch (e: Exception) {
-            log.warn("카카오 로컬 API 호출 실패, 대체 데이터로 응답합니다.", e)
+            log.warn("카카오 로컬 API 호출 실패(category={}), 해당 카테고리는 결과 없음으로 처리합니다.", category, e)
             emptyList()
         }
     }
@@ -65,8 +78,8 @@ class MapFacilityQueryService(
 
     private fun dedupAndSort(rawFacilities: List<RawFacility>): List<FacilityResponse> {
         val deduped = rawFacilities
-            .groupBy { it.name to it.roadAddress }
-            .map { (_, group) -> group.minByOrNull { it.distanceMeters }!! }
+            .groupBy { Triple(it.category, it.name, it.roadAddress.ifBlank { it.address }) }
+            .map { (_, group) -> checkNotNull(group.minByOrNull { it.distanceMeters }) }
             .sortedBy { it.distanceMeters }
 
         return deduped.mapIndexed { index, facility -> facility.toResponse(index) }
@@ -98,16 +111,17 @@ class MapFacilityQueryService(
         )
     }
 
-    private fun validateCoordinates(
+    private fun requireValidCoordinates(
         latitude: Double?,
         longitude: Double?,
-    ) {
+    ): Pair<Double, Double> {
         if (latitude == null || longitude == null ||
             latitude !in MIN_LATITUDE..MAX_LATITUDE ||
             longitude !in MIN_LONGITUDE..MAX_LONGITUDE
         ) {
             throw BusinessException(ErrorCode.INVALID_COORDINATES)
         }
+        return latitude to longitude
     }
 
     private fun resolveCategory(category: String): FacilityCategory? {

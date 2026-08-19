@@ -1,5 +1,6 @@
 package com.safemedi.app.sefemedi.domain.map.client
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
@@ -69,22 +70,33 @@ class KakaoMedicalFacilitySearchClient(
             "&sort=distance"
     }
 
-    private fun parseDocuments(
+    internal fun parseDocuments(
         body: String,
         category: FacilityCategory,
     ): List<RawFacility> {
         val documents = jsonMapper.readTree(body).get("documents") ?: return emptyList()
         val facilities = mutableListOf<RawFacility>()
         for (document in documents) {
+            val latitude = document.get("y")?.asString()?.toDoubleOrNull()
+            val longitude = document.get("x")?.asString()?.toDoubleOrNull()
+            val distanceMeters = document.get("distance")?.asString()?.toIntOrNull()
+            if (latitude == null || longitude == null || distanceMeters == null) {
+                log.warn(
+                    "카카오 로컬 API 응답에 좌표/거리 값이 없어 항목을 제외합니다: {}",
+                    document.get("place_name")?.asString(),
+                )
+                continue
+            }
+
             facilities.add(
                 RawFacility(
                     name = document.get("place_name")?.asString().orEmpty(),
                     category = category,
                     address = document.get("address_name")?.asString().orEmpty(),
                     roadAddress = document.get("road_address_name")?.asString().orEmpty(),
-                    latitude = document.get("y")?.asString()?.toDoubleOrNull() ?: 0.0,
-                    longitude = document.get("x")?.asString()?.toDoubleOrNull() ?: 0.0,
-                    distanceMeters = document.get("distance")?.asString()?.toIntOrNull() ?: 0,
+                    latitude = latitude,
+                    longitude = longitude,
+                    distanceMeters = distanceMeters,
                     phoneNumber = document.get("phone")?.asString().orEmpty(),
                     categoryName = document.get("category_name")?.asString().orEmpty(),
                     placeUrl = document.get("place_url")?.asString(),
@@ -95,6 +107,7 @@ class KakaoMedicalFacilitySearchClient(
     }
 
     private companion object {
+        val log = LoggerFactory.getLogger(KakaoMedicalFacilitySearchClient::class.java)
         const val KEYWORD_SEARCH_URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
         const val SEARCH_RADIUS_METERS = 5000
         const val REQUEST_TIMEOUT_SECONDS = 7L

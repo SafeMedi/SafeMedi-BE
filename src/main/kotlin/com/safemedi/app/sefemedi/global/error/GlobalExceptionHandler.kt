@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.slf4j.LoggerFactory
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -23,6 +24,16 @@ class GlobalExceptionHandler {
     fun handleMissingRequestParameter(
         exception: MissingServletRequestParameterException
     ): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.INVALID_REQUEST
+        return ResponseEntity.status(errorCode.status)
+            .body(ErrorResponse(errorCode.code, errorCode.message))
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatch(
+        exception: MethodArgumentTypeMismatchException
+    ): ResponseEntity<ErrorResponse> {
+        log.warn("Failed to convert request parameter: {}", exception.message)
         val errorCode = ErrorCode.INVALID_REQUEST
         return ResponseEntity.status(errorCode.status)
             .body(ErrorResponse(errorCode.code, errorCode.message))

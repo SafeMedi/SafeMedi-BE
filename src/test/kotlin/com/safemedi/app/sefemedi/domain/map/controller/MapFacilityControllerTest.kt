@@ -90,6 +90,21 @@ class MapFacilityControllerTest {
     }
 
     @Test
+    fun `latitude가 숫자 형식이 아니면 400을 반환한다`() {
+        val resultActions = mockMvc.perform(
+            get("/api/v1/map/facilities")
+                .param("latitude", "abc")
+                .param("longitude", "127.027618")
+                .accept(MediaType.APPLICATION_JSON)
+        )
+
+        resultActions
+            .andExpect(status().isBadRequest)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.code").value("VAL_001"))
+    }
+
+    @Test
     fun `invalid category returns validation error`() {
         given(
             mapFacilityQueryService.getFacilities(37.497941, 127.027618, "hospital", "")

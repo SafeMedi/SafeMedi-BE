@@ -113,13 +113,13 @@ class AuthService(
         )
 
         val userDevice = userDeviceRepository.findByDeviceToken(deviceToken)
-            ?: throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_NOT_FOUND)
-
-        if (userDevice.user.id != userId) {
-            throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_ACCESS_DENIED)
+        if (userDevice != null) {
+            if (userDevice.user.id != userId) {
+                throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_ACCESS_DENIED)
+            }
+            userDevice.deactivate()
         }
 
-        userDevice.deactivate()
         refreshTokenRepository.deleteByUserId(userId)
         discardAccessToken(accessToken)
 

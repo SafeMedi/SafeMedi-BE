@@ -262,7 +262,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `logout throws LOGOUT_DEVICE_TOKEN_NOT_FOUND when token does not exist`() {
+    fun `logout succeeds idempotently when device token does not exist`() {
         val user = User(
             id = 1L,
             socialId = "4903042739",
@@ -270,19 +270,19 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(null)
-        givenValidLogoutAccessToken()
+        val expiresAt = givenValidLogoutAccessToken()
 
-        val exception = assertThrows(BusinessException::class.java) {
-            authService.logout(
-                socialId = "4903042739",
-                accessToken = "access-token",
-                request = LogoutRequest(
-                    deviceToken = "device-token",
-                ),
-            )
-        }
+        val response = authService.logout(
+            socialId = "4903042739",
+            accessToken = "access-token",
+            request = LogoutRequest(
+                deviceToken = "device-token",
+            ),
+        )
 
-        assertEquals(ErrorCode.LOGOUT_DEVICE_TOKEN_NOT_FOUND, exception.errorCode)
+        assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
+        verify(refreshTokenRepository).deleteByUserId(1L)
+        verify(accessTokenBlacklistService).blacklist("access-token", expiresAt)
     }
 
     @Test

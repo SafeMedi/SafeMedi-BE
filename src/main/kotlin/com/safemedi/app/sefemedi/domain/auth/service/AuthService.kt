@@ -14,6 +14,7 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
+import io.jsonwebtoken.JwtException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.Locale
@@ -240,7 +241,12 @@ class AuthService(
         if (!jwtProvider.validateAccessToken(accessToken)) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
-        if (jwtProvider.getKakaoId(accessToken) != socialId) {
+        val kakaoId = try {
+            jwtProvider.getKakaoId(accessToken)
+        } catch (_: JwtException) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+        if (kakaoId != socialId) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
         if (accessTokenBlacklistService.contains(accessToken)) {
@@ -251,9 +257,16 @@ class AuthService(
     private fun discardAccessToken(
         accessToken: String,
     ) {
+        val expiresAt = try {
+            jwtProvider.getExpiration(accessToken)
+        } catch (_: JwtException) {
+            // 검증과 폐기 사이의 타이밍 차이로 토큰이 막 만료된 경우, 어차피 재사용 불가능하므로 블랙리스트 등록 없이 로그아웃을 정상 종료한다.
+            return
+        }
+
         accessTokenBlacklistService.blacklist(
             token = accessToken,
-            expiresAt = jwtProvider.getExpiration(accessToken).toInstant(),
+            expiresAt = expiresAt.toInstant(),
         )
     }
 

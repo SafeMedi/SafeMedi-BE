@@ -12,6 +12,7 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
+import io.jsonwebtoken.ExpiredJwtException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import java.time.Instant
@@ -283,6 +285,72 @@ class AuthServiceTest {
         assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
         verify(refreshTokenRepository).deleteByUserId(1L)
         verify(accessTokenBlacklistService).blacklist("access-token", expiresAt)
+    }
+
+    @Test
+    fun `logout throws INVALID_TOKEN when access token expires right before identity check`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(jwtProvider.validateAccessToken("access-token")).willReturn(true)
+        given(jwtProvider.getKakaoId("access-token"))
+            .willThrow(ExpiredJwtException(null, null, "expired"))
+
+        val exception = assertThrows(BusinessException::class.java) {
+            authService.logout(
+                socialId = "4903042739",
+                accessToken = "access-token",
+                request = LogoutRequest(
+                    deviceToken = "device-token",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+
+    @Test
+    fun `logout succeeds without blacklisting when access token expires right before discard`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val userDevice = UserDevice(
+            id = 10L,
+            user = user,
+            deviceToken = "device-token",
+            deviceType = "ANDROID",
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(userDevice)
+        given(jwtProvider.validateAccessToken("access-token")).willReturn(true)
+        given(jwtProvider.getKakaoId("access-token")).willReturn("4903042739")
+        given(accessTokenBlacklistService.contains("access-token")).willReturn(false)
+        given(jwtProvider.getExpiration("access-token"))
+            .willThrow(ExpiredJwtException(null, null, "expired"))
+
+        val response = authService.logout(
+            socialId = "4903042739",
+            accessToken = "access-token",
+            request = LogoutRequest(
+                deviceToken = "device-token",
+            ),
+        )
+
+        assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
+        assertEquals(false, userDevice.isActive)
+        verify(refreshTokenRepository).deleteByUserId(1L)
+        assertEquals(
+            emptyList<String>(),
+            mockingDetails(accessTokenBlacklistService).invocations
+                .map { it.method.name }
+                .filter { it == "blacklist" },
+        )
     }
 
     @Test

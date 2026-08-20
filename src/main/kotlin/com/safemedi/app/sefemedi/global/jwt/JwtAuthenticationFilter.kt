@@ -29,15 +29,19 @@ class JwtAuthenticationFilter(
             !accessTokenBlacklistService.contains(token) &&
             SecurityContextHolder.getContext().authentication == null
         ) {
-            val authentication =
-                UsernamePasswordAuthenticationToken(
-                    jwtProvider.getKakaoId(token),
-                    null,
-                    emptyList()
-                )
+            val kakaoId = runCatching { jwtProvider.getKakaoId(token) }.getOrNull()
 
-            SecurityContextHolder.getContext().authentication =
-                authentication
+            if (kakaoId != null) {
+                val authentication =
+                    UsernamePasswordAuthenticationToken(
+                        kakaoId,
+                        null,
+                        emptyList()
+                    )
+
+                SecurityContextHolder.getContext().authentication =
+                    authentication
+            }
         }
 
         filterChain.doFilter(

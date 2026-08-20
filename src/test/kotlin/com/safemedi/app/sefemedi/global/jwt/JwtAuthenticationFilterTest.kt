@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.global.jwt
 
 import com.safemedi.app.sefemedi.domain.auth.service.AccessTokenBlacklistService
+import io.jsonwebtoken.ExpiredJwtException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -69,6 +70,26 @@ class JwtAuthenticationFilterTest {
         given(accessTokenBlacklistService.contains(accessToken)).willReturn(true)
 
         filter.doFilter(request, response, filterChain)
+
+        assertNull(SecurityContextHolder.getContext().authentication)
+        verify(filterChain).doFilter(request, response)
+    }
+
+    @Test
+    fun `token expiring between validate and identity check does not authenticate or break the chain`() {
+        val racyJwtProvider = mock(JwtProvider::class.java)
+        val racyFilter = JwtAuthenticationFilter(racyJwtProvider, accessTokenBlacklistService)
+        val request = mock(HttpServletRequest::class.java)
+        val response = mock(HttpServletResponse::class.java)
+        val filterChain = mock(FilterChain::class.java)
+
+        given(request.getHeader("Authorization")).willReturn("Bearer access-token")
+        given(racyJwtProvider.validateAccessToken("access-token")).willReturn(true)
+        given(accessTokenBlacklistService.contains("access-token")).willReturn(false)
+        given(racyJwtProvider.getKakaoId("access-token"))
+            .willThrow(ExpiredJwtException(null, null, "expired"))
+
+        racyFilter.doFilter(request, response, filterChain)
 
         assertNull(SecurityContextHolder.getContext().authentication)
         verify(filterChain).doFilter(request, response)

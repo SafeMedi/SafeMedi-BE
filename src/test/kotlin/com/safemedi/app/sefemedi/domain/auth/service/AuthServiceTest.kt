@@ -272,6 +272,7 @@ class AuthServiceTest {
 
         given(userRepository.findBySocialId("4903042739")).willReturn(user)
         given(userDeviceRepository.findByDeviceToken("device-token")).willReturn(null)
+        given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L)).willReturn(null)
         val expiresAt = givenValidLogoutAccessToken()
 
         val response = authService.logout(
@@ -285,6 +286,38 @@ class AuthServiceTest {
         assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
         verify(refreshTokenRepository).deleteByUserId(1L)
         verify(accessTokenBlacklistService).blacklist("access-token", expiresAt)
+    }
+
+    @Test
+    fun `logout deactivates the user's other active device when the given device token matches none`() {
+        val user = User(
+            id = 1L,
+            socialId = "4903042739",
+        )
+        val otherActiveDevice = UserDevice(
+            id = 20L,
+            user = user,
+            deviceToken = "rotated-device-token",
+            deviceType = "ANDROID",
+            isActive = true,
+        )
+
+        given(userRepository.findBySocialId("4903042739")).willReturn(user)
+        given(userDeviceRepository.findByDeviceToken("stale-device-token")).willReturn(null)
+        given(userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(1L))
+            .willReturn(otherActiveDevice)
+        givenValidLogoutAccessToken()
+
+        val response = authService.logout(
+            socialId = "4903042739",
+            accessToken = "access-token",
+            request = LogoutRequest(
+                deviceToken = "stale-device-token",
+            ),
+        )
+
+        assertEquals("로그아웃이 성공적으로 진행되었습니다.", response.message)
+        assertEquals(false, otherActiveDevice.isActive)
     }
 
     @Test

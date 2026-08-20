@@ -14,6 +14,9 @@ import com.safemedi.app.sefemedi.global.error.BusinessException
 import com.safemedi.app.sefemedi.global.error.ErrorCode
 import com.safemedi.app.sefemedi.global.jwt.JwtProvider
 import com.safemedi.app.sefemedi.global.jwt.TokenParseResult
+import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.JwtException
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.Locale
@@ -28,6 +31,8 @@ class AuthService(
     private val socialLoginVerifier: SocialLoginVerifier,
     private val userDeviceRepository: UserDeviceRepository,
 ) {
+
+    private val log = LoggerFactory.getLogger(AuthService::class.java)
 
     @Transactional
     fun login(
@@ -113,13 +118,17 @@ class AuthService(
         )
 
         val userDevice = userDeviceRepository.findByDeviceToken(deviceToken)
-            ?: throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_NOT_FOUND)
-
-        if (userDevice.user.id != userId) {
-            throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_ACCESS_DENIED)
+        if (userDevice != null) {
+            if (userDevice.user.id != userId) {
+                throw BusinessException(ErrorCode.LOGOUT_DEVICE_TOKEN_ACCESS_DENIED)
+            }
+            userDevice.deactivate()
+        } else {
+            // 클라이언트가 보낸 deviceToken이 등록된 기기와 매칭되지 않아도(재설치, 푸시 토큰 회전 등),
+            // 세션은 종료되므로 실제 활성 기기가 비활성화되지 않은 채 남아 로그아웃 후에도 푸시를 계속 받는 것을 막는다.
+            userDeviceRepository.findFirstByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(userId)?.deactivate()
         }
 
-        userDevice.deactivate()
         refreshTokenRepository.deleteByUserId(userId)
         discardAccessToken(accessToken)
 
@@ -240,7 +249,12 @@ class AuthService(
         if (!jwtProvider.validateAccessToken(accessToken)) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
-        if (jwtProvider.getKakaoId(accessToken) != socialId) {
+        val kakaoId = try {
+            jwtProvider.getKakaoId(accessToken)
+        } catch (_: JwtException) {
+            throw BusinessException(ErrorCode.INVALID_TOKEN)
+        }
+        if (kakaoId != socialId) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }
         if (accessTokenBlacklistService.contains(accessToken)) {
@@ -251,9 +265,20 @@ class AuthService(
     private fun discardAccessToken(
         accessToken: String,
     ) {
+        val expiresAt = try {
+            jwtProvider.getExpiration(accessToken)
+        } catch (_: ExpiredJwtException) {
+            // 검증과 폐기 사이의 타이밍 차이로 토큰이 막 만료된 경우, 어차피 재사용 불가능하므로 블랙리스트 등록 없이 로그아웃을 정상 종료한다.
+            return
+        } catch (e: JwtException) {
+            // 검증을 통과한 직후라 정상 흐름에서는 발생하지 않아야 하지만, 발생 시 원인 파악을 위해 남긴다.
+            log.warn("accessToken 만료 시각 파싱 실패로 블랙리스트 등록을 건너뜀", e)
+            return
+        }
+
         accessTokenBlacklistService.blacklist(
             token = accessToken,
-            expiresAt = jwtProvider.getExpiration(accessToken).toInstant(),
+            expiresAt = expiresAt.toInstant(),
         )
     }
 

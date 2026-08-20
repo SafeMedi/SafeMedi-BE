@@ -1,6 +1,7 @@
 package com.safemedi.app.sefemedi.global.jwt
 
 import com.safemedi.app.sefemedi.domain.auth.service.AccessTokenBlacklistService
+import io.jsonwebtoken.JwtException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -29,15 +30,23 @@ class JwtAuthenticationFilter(
             !accessTokenBlacklistService.contains(token) &&
             SecurityContextHolder.getContext().authentication == null
         ) {
-            val authentication =
-                UsernamePasswordAuthenticationToken(
-                    jwtProvider.getKakaoId(token),
-                    null,
-                    emptyList()
-                )
+            val kakaoId = try {
+                jwtProvider.getKakaoId(token)
+            } catch (_: JwtException) {
+                null
+            }
 
-            SecurityContextHolder.getContext().authentication =
-                authentication
+            if (kakaoId != null) {
+                val authentication =
+                    UsernamePasswordAuthenticationToken(
+                        kakaoId,
+                        null,
+                        emptyList()
+                    )
+
+                SecurityContextHolder.getContext().authentication =
+                    authentication
+            }
         }
 
         filterChain.doFilter(

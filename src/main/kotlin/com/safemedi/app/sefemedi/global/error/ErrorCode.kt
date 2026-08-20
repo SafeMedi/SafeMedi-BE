@@ -72,11 +72,6 @@ enum class ErrorCode(
         "NOTI_001",
         "해당 로그아웃 할 권한이 없습니다.",
     ),
-    LOGOUT_DEVICE_TOKEN_NOT_FOUND(
-        HttpStatus.NOT_FOUND,
-        "NOTI_002",
-        "존재하지 않는 기기 토큰입니다.",
-    ),
     NOTIFICATION_NOT_FOUND(
         HttpStatus.NOT_FOUND,
         "NOTI_003",

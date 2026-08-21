@@ -81,16 +81,18 @@ class FamilyListQueryServiceTest {
     }
 
     @Test
-    fun `본인 닉네임이 없으면 SYS_500 예외를 던진다`() {
+    fun `본인 닉네임이 없으면 이름 없이 본인 항목을 반환한다`() {
         given(userRepository.findBySocialId("kakao-123")).willReturn(
             User(id = 1L, nickname = null, socialId = "kakao-123")
         )
+        given(familyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
 
-        assertError(ErrorCode.INTERNAL_SERVER_ERROR) {
-            service.getFamilies("kakao-123")
-        }
+        val response = service.getFamilies("kakao-123")
 
-        verifyNoInteractions(familyRepository)
+        assertEquals(1, response.families.size)
+        assertNull(response.families.single().familyId)
+        assertNull(response.families.single().name)
+        assertEquals("본인", response.families.single().relation)
     }
 
     @Test

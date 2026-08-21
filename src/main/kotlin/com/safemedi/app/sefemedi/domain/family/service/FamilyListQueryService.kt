@@ -21,8 +21,6 @@ class FamilyListQueryService(
             ?: throw BusinessException(ErrorCode.INVALID_ACCESS_TOKEN)
         val currentUserId = currentUser.id
             ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
-        val currentUserName = currentUser.nickname
-            ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)
         val connectedFamilies = familyRepository.findAllByUser_IdOrderByCreatedAtAsc(currentUserId)
             .map { family ->
                 FamilyListItemResponse(
@@ -38,7 +36,7 @@ class FamilyListQueryService(
             add(
                 FamilyListItemResponse(
                     familyId = null,
-                    name = currentUserName,
+                    name = currentUser.nickname,
                     relation = SELF_RELATION,
                 )
             )

@@ -26,8 +26,7 @@ class FamilyListQueryService(
                 FamilyListItemResponse(
                     familyId = family.id
                         ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
-                    name = family.connectedUser.nickname
-                        ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR),
+                    name = family.connectedUser.nickname,
                     relation = family.relation,
                 )
             }

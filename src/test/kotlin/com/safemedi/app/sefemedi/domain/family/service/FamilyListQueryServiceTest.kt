@@ -81,28 +81,36 @@ class FamilyListQueryServiceTest {
     }
 
     @Test
-    fun `본인 닉네임이 없으면 SYS_500 예외를 던진다`() {
+    fun `본인 닉네임이 없으면 이름 없이 본인 항목을 반환한다`() {
         given(userRepository.findBySocialId("kakao-123")).willReturn(
             User(id = 1L, nickname = null, socialId = "kakao-123")
         )
+        given(familyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(emptyList())
 
-        assertError(ErrorCode.INTERNAL_SERVER_ERROR) {
-            service.getFamilies("kakao-123")
-        }
+        val response = service.getFamilies("kakao-123")
 
-        verifyNoInteractions(familyRepository)
+        assertEquals(1, response.families.size)
+        assertNull(response.families.single().familyId)
+        assertNull(response.families.single().name)
+        assertEquals("본인", response.families.single().relation)
     }
 
     @Test
-    fun `연동 가족 닉네임이 없으면 SYS_500 예외를 던진다`() {
+    fun `연동 가족 닉네임이 없으면 이름 없이 가족 항목을 반환한다`() {
         val connectedUser = User(id = 2L, nickname = null, socialId = "kakao-456")
         given(familyRepository.findAllByUser_IdOrderByCreatedAtAsc(1L)).willReturn(
             listOf(family(id = 12L, connectedUser = connectedUser, relation = "가족"))
         )
 
-        assertError(ErrorCode.INTERNAL_SERVER_ERROR) {
-            service.getFamilies("kakao-123")
-        }
+        val response = service.getFamilies("kakao-123")
+
+        assertEquals(2, response.families.size)
+        assertNull(response.families[0].familyId)
+        assertEquals("홍길동", response.families[0].name)
+        assertEquals("본인", response.families[0].relation)
+        assertEquals(12L, response.families[1].familyId)
+        assertNull(response.families[1].name)
+        assertEquals("가족", response.families[1].relation)
     }
 
     private fun family(
